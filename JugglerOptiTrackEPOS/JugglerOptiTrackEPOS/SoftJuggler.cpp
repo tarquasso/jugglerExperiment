@@ -1,6 +1,6 @@
 //=============================================================================
-// Copyright © 2014 NaturalPoint, Inc. All Rights Reserved.
-// 
+// Copyright ï¿½ 2014 NaturalPoint, Inc. All Rights Reserved.
+//
 // This software is provided by the copyright holders and contributors "as is" and
 // any express or implied warranties, including, but not limited to, the implied
 // warranties of merchantability and fitness for a particular purpose are disclaimed.
@@ -42,7 +42,7 @@ using namespace std;
 
 #include "NatNetTypes.h"
 #include "NatNetClient.h"
-#include "Definitions.h"
+#include "motorDriver.h"
 
 #pragma warning( disable : 4996 )
 
@@ -72,7 +72,7 @@ int analogSamplesPerMocapFrame = 0;
 int main(int argc, char *argv[])
 {
     int iResult;
-     
+
     // parse command line args
     if(argc>1)
     {
@@ -146,9 +146,9 @@ int main(int argc, char *argv[])
                 printf("Unknown data type.");
                 // Unknown
             }
-        }      
+        }
 	}
-	
+
 	// Create data file for writing received stream into
 	char szFile[MAX_PATH];
 	//char szFolder[MAX_PATH];
@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
 	// Fix for the conversion for the two lines commented out above [by Aykut]
 	wchar_t szFolder[MAX_PATH] = {};
 	GetCurrentDirectory(MAX_PATH, szFolder);
-	
+
 
 	if (argc > 3)
 		sprintf(szFile, "%s\\%s", szFolder, argv[3]);
@@ -181,11 +181,11 @@ int main(int argc, char *argv[])
 		switch(c)
 		{
 			case 'q':
-				bExit = true;		
-				break;	
+				bExit = true;
+				break;
 			case 'r':
 				resetClient();
-				break;	
+				break;
             case 'p':
                 sServerDescription ServerDescription;
                 memset(&ServerDescription, 0, sizeof(ServerDescription));
@@ -195,13 +195,13 @@ int main(int argc, char *argv[])
                     printf("Unable to connect to server. Host not present. Exiting.");
                     return 1;
                 }
-                break;	
+                break;
             case 'f':
                 {
                     sFrameOfMocapData* pData = theClient->GetLastFrameOfData();
                     printf("Most Recent Frame: %d", pData->iFrame);
                 }
-                break;	
+                break;
             case 'm':	                        // change to multicast
                 iConnectionType = ConnectionType_Multicast;
                 iResult = CreateClient(iConnectionType);
@@ -323,13 +323,13 @@ void __cdecl DataHandler(sFrameOfMocapData* data, void* pUserData)
 
 	if(fp)
 		_WriteFrame(fp,data);
-	
+
     int i=0;
 
     // printf("FrameID : %d\n", data->iFrame);
     // printf("Timestamp :  %3.2lf\n", data->fTimestamp);
     // printf("Latency :  %3.2lf\n", data->fLatency);
-    
+
     // FrameOfMocapData params
     bool bIsRecording = ((data->params & 0x01)!=0);
     bool bTrackedModelsChanged = ((data->params & 0x02)!=0);
@@ -372,102 +372,22 @@ void __cdecl DataHandler(sFrameOfMocapData* data, void* pUserData)
 
 	/**********************************************/
 	/* Insert motor control commands from here on */
-	DWORD m_ulErrorCode;
-	WORD m_usNodeId = 1;
-	const WORD maxStrSize = 100;
 
-	char strDeviceName[maxStrSize];
-	char strProtocolStackName[maxStrSize];
+  motorDriver motor;
+  long m_lStartPosition = motor.getStartPosition();
+  long TargetPosition = 2000;
 
-	BOOL endOfSel = FALSE;
-	DWORD errorCode = 0;
+  long* pPosition = NULL;
 
-	// get first device name
-	if (VCS_GetDeviceNameSelection(TRUE, strDeviceName, maxStrSize, &endOfSel, &errorCode))
-	{
-		//get next device name (as long as endOfSel == FALSE)
-		while (!endOfSel)
-		{
-			VCS_GetDeviceNameSelection(FALSE, strDeviceName, maxStrSize, &endOfSel, &errorCode);
-		}
-	}
+  BOOL Absolute = FALSE;
+  BOOL Immediately = TRUE;
 
-	//get first protocol stack name
-	if (VCS_GetProtocolStackNameSelection(strDeviceName, TRUE, strProtocolStackName,
-		maxStrSize, &endOfSel, &errorCode))
-	{
-		//get next protocol stack name (as long as endOfSel == FALSE)
-		while (!endOfSel)
-		{
-			VCS_GetProtocolStackNameSelection(strDeviceName, FALSE, strProtocolStackName,
-				maxStrSize, &endOfSel, &errorCode);
-		}
-	}
-
-	endOfSel = FALSE;
-	errorCode = 0;
-	char strInterfaceName[maxStrSize];
-
-	//get first interface name
-	if (VCS_GetInterfaceNameSelection(strDeviceName, strProtocolStackName, TRUE, strInterfaceName,
-		maxStrSize, &endOfSel, &errorCode))
-	{
-		//get next interface name (as long as endOfSel == FALSE)
-		while (!endOfSel)
-		{
-			VCS_GetInterfaceNameSelection(strDeviceName, strProtocolStackName, FALSE, strInterfaceName,
-				maxStrSize, &endOfSel, &errorCode);
-		}
-	}
-
-
-	endOfSel = FALSE;
-	errorCode = 0;
-	char strPortName[maxStrSize];
-
-	//get first port name
-	if (VCS_GetPortNameSelection(strDeviceName, strProtocolStackName, strInterfaceName,
-		TRUE, strPortName, maxStrSize, &endOfSel, &errorCode))
-	{
-		//get next port name (as long as endOfSel == FALSE)
-		while (!endOfSel)
-		{
-			VCS_GetPortNameSelection(strDeviceName, strProtocolStackName, strInterfaceName,
-				FALSE, strPortName, maxStrSize, &endOfSel, &errorCode);
-		}
-	}
-
-	/* Or just use the following */
-	// char* deviceName = "EPOS4";
-	// char* protocolStackName = "MAXON_RS232"; // Can be "MAXON SERIAL V2" OR "CANopen"
-	// char* interfaceName = "USB"; // Can also be "RS232"
-	// char* portName = "COM3"; // Can also be COM1, COM2, ..., USB0, USB1, ..., CAN0, CAN1, ...
-
-
-	// Open Device
-	HANDLE motorHandle = 0;
-	motorHandle = VCS_OpenDevice(strDeviceName, strProtocolStackName, strInterfaceName,
-		strPortName, &errorCode);
-
-	// Set Enable State
-	VCS_SetEnableState(motorHandle, m_usNodeId, &m_ulErrorCode);
-
-	// Set Operation Mode
-	__int8 m_bMode = -1;
-	VCS_SetOperationMode(motorHandle, m_usNodeId, m_bMode, &m_ulErrorCode);
 
 	// Get the Current Position
-	long m_lStartPosition = 0;
-	VCS_GetPositionIs(motorHandle, m_usNodeId, &m_lStartPosition, &m_ulErrorCode);
+	motor.getPosition(pPosition);
 
 	// Move To Position
-	long m_lTargetPosition = 2000;
-	BOOL m_oRadio = FALSE;
-	BOOL m_oImmediately = TRUE;
-	VCS_MoveToPosition(motorHandle, m_usNodeId, m_lTargetPosition, m_oRadio, m_oImmediately, &m_ulErrorCode);
-
-	// Close Device
-	VCS_CloseDevice(motorHandle, &errorCode);
+	motor.moveToPosition(TargetPosition, Absolute, Immediately);
 
 	/* End of motor commands */
 	/*************************/
@@ -487,7 +407,7 @@ void _WriteHeader(FILE* fp, sDataDescriptions* pBodyDefs)
 
     if(!pBodyDefs->arrDataDescriptions[0].type == Descriptor_MarkerSet)
         return;
-        
+
 	sMarkerSetDescription* pMS = pBodyDefs->arrDataDescriptions[0].Data.MarkerSetDescription;
 
 	fprintf(fp, "<MarkerSet>\n\n");
@@ -513,7 +433,7 @@ void _WriteHeader(FILE* fp, sDataDescriptions* pBodyDefs)
 void _WriteFrame(FILE* fp, sFrameOfMocapData* data)
 {
 	fprintf(fp, "%d", data->iFrame);
-		
+
 	/*for(int i =0; i < data->MocapData->nMarkers; i++)
 	{
 		fprintf(fp, "\t%.5f\t%.5f\t%.5f", data->MocapData->Markers[i][0], data->MocapData->Markers[i][1], data->MocapData->Markers[i][2]);
@@ -550,4 +470,3 @@ void resetClient()
 
 
 }
-
