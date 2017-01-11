@@ -51,6 +51,7 @@ void __cdecl DataHandler(sFrameOfMocapData* data, void* pUserData);		// receives
 void __cdecl MessageHandler(int msgType, char* msg);		            // receives NatNet error mesages
 void resetClient();
 int CreateClient(int iConnectionType);
+void commandMotor(float x, float z);
 
 unsigned int MyServersDataPort = 3130;
 //unsigned int MyServersDataPort = 3883;
@@ -65,18 +66,44 @@ char szServerIPAddress[128] = "";
 
 int analogSamplesPerMocapFrame = 0;
 
+double fRate = 0.0;
+double expectedFramePeriod = 0.0;
 
 motorDriver motor;
 long m_lStartPosition = motor.getStartPosition();
-long TargetPosition = 0;
+float TargetPositionRad = 0;
 
 long* pPosition = NULL;
 
-BOOL Absolute = FALSE;
+BOOL Absolute = TRUE;
 BOOL Immediately = TRUE;
 
-Controller mirrorLaw;
+DWORD pProfileVelocity;
+DWORD pProfileAcceleration;
+DWORD pProfileDeceleration;
 
+DWORD ProfileVelocity = 500;
+DWORD ProfileAcceleration = 5000;
+DWORD ProfileDeceleration = 5000;
+
+float pPositionRad = 0.0;
+
+BOOL pTargetReached = FALSE;
+
+DWORD pBaudrate;
+DWORD pTimeOut;
+DWORD pErrorCode;
+
+
+Controller mirrorLaw;
+float xPos = 0.0;
+float zPos = 0.0;
+
+float xPosOld = 0.0;
+float zPosOld = 0.0;
+
+float xVel = 0.0;
+float zVel = 0.0;
 
 // int _tmain(int argc, _TCHAR* argv[])
 int main()
@@ -138,7 +165,6 @@ int main()
 	}
 
 
-	float x, z;
 	// Ready to receive marker stream!
 	printf("\nClient is connected to server and listening for data...\n");
 	int c;
@@ -199,37 +225,23 @@ int main()
 		}
 		if(bExit)
 			break;
-
-
-		/**********************************************/
-		/* Insert motor control commands from here on */
-
-		// Get the Current Position
-		motor.getPosition(pPosition);		// Read Motor Position
-		sFrameOfMocapData* pData = theClient->GetLastFrameOfData();
-
-		for (int kk = 0; kk < pData->nLabeledMarkers; kk++)
-		{
-			sMarker marker = pData->LabeledMarkers[kk];
-			x += marker.x;
-			z += marker.z;
-		}
-
-		x /= pData->nLabeledMarkers;
-		z /= pData->nLabeledMarkers;
-
-		mirrorLaw.setBallPosition(x, z);
-		mirrorLaw.setBallVelocity(0.0, 0.0);
-
-		TargetPosition = mirrorLaw.computeDesiredPaddlePosition();		// Need conversion to ticks or something here.
-
-																		// Move To Position
-		motor.moveToPosition(TargetPosition, Absolute, Immediately);
-
-		/* End of motor commands */
-		/*************************/
 	}
 	// End of OptiTrack Capture code.
+
+		//sFrameOfMocapData* pData = theClient->GetLastFrameOfData();
+
+		//for (int kk = 0; kk < pData->nLabeledMarkers; kk++)
+		//{
+		//	sMarker marker = pData->LabeledMarkers[kk];
+		//	x += marker.x;
+		//	z += marker.z;
+		//}
+
+		//x /= pData->nLabeledMarkers;
+		//z /= pData->nLabeledMarkers;
+
+		//std::cout << "x-position is: " << x << "\n\n";
+
 
 
 	// Done - clean up: OptiTrack stuff.
@@ -319,8 +331,8 @@ void __cdecl DataHandler(sFrameOfMocapData* data, void* pUserData)
     int i=0;
 
     // printf("FrameID : %d\n", data->iFrame);
-    // printf("Timestamp :  %3.2lf\n", data->fTimestamp);
-    // printf("Latency :  %3.2lf\n", data->fLatency);
+    //printf("Timestamp :  %3.2lf\n", data->fTimestamp);
+    //printf("Latency :  %3.2lf\n", data->fLatency);
 
     // FrameOfMocapData params
     bool bIsRecording = ((data->params & 0x01)!=0);
@@ -357,9 +369,41 @@ void __cdecl DataHandler(sFrameOfMocapData* data, void* pUserData)
         theClient->DecodeID(marker.ID, &modelID, &markerID);
 		printf("Labeled Marker [ModelID=%d, MarkerID=%d, Occluded=%d, PCSolved=%d, ModelSolved=%d] [size=%3.2f] [pos=%3.2f,%3.2f,%3.2f]\n",
             modelID, markerID, bOccluded, bPCSolved, bModelSolved,  marker.size, marker.x, marker.y, marker.z);
+
+		xPos += marker.x;
+		zPos += marker.z;
 	}
 	// End of data receipt.
+	
+	// get frame rate from host
+	void* pResult;
+	int ret = 0;
+	int nBytes = 0;
+	ret = theClient->SendMessageAndWait("FrameRate", &pResult, &nBytes);
+	if (ret == ErrorCode_OK)
+	{
+		fRate = *((float*)pResult);
+		if (fRate != 0.0f)
+			expectedFramePeriod = (1 / fRate);
+	}
+	if (expectedFramePeriod == 0.0)
+		printf("Error establishing Frame Rate.");
 
+	xPos /= data->nLabeledMarkers;
+	zPos /= data->nLabeledMarkers;
+
+	xVel = (xPos - xPosOld) * fRate;
+	zVel = (zPos - zPosOld) * fRate;
+
+	std::cout << expectedFramePeriod << "\n\n";
+
+
+
+	commandMotor(xPos, zPos, xVel, zVel);
+	xPosOld = xPos;
+	zPosOld = zPos;
+	xPos = 0.0;
+	zPos = 0.0;
 }
 
 // MessageHandler receives NatNet error/debug messages
@@ -383,4 +427,35 @@ void resetClient()
 		printf("error re-initting Client\n");
 
 
+}
+
+
+void commandMotor(float x, float z, float xp, float zp)
+{
+	mirrorLaw.setBallPosition(x, z);
+	mirrorLaw.setBallVelocity(xp, zp);
+
+	/**********************************************/
+	/* Insert motor control commands from here on */
+
+	// Get the Current Position
+	motor.getPosition(pPosition);		// Read Motor Position
+
+	motor.getPositionProfile(&pProfileVelocity, &pProfileAcceleration, &pProfileDeceleration, &pErrorCode);
+	motor.setPositionProfile(ProfileVelocity, ProfileAcceleration, ProfileDeceleration, &pErrorCode);
+
+	TargetPositionRad = mirrorLaw.computeDesiredPaddlePosition();		// Need conversion to ticks or something here.
+
+	std::cout << "I'm commanding " << TargetPositionRad << "[rad] to the motor.\n";
+
+//	while (!pTargetReached)
+//	{
+		motor.getPositionRad(&pPositionRad);		// Read Motor Position
+
+		motor.moveToPositionRad(TargetPositionRad, Absolute, Immediately);
+
+		motor.getMovementState(&pTargetReached, &pErrorCode);
+//	}
+	/* End of motor commands */
+	/*************************/
 }
