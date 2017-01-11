@@ -30,7 +30,7 @@ Usage [optional]:
 
 */
 
-// #define PI 3.14159265358979;
+#define PI 3.14159265358979;
 
 
 #include <stdio.h>
@@ -43,10 +43,12 @@ using namespace std;
 #include "NatNetTypes.h"
 #include "NatNetClient.h"
 #include "motorDriver.h"
-#include "controller.h"
 
 #pragma warning( disable : 4996 )
 
+void _WriteHeader(FILE* fp, sDataDescriptions* pBodyDefs);
+void _WriteFrame(FILE* fp, sFrameOfMocapData* data);
+void _WriteFooter(FILE* fp);
 void __cdecl DataHandler(sFrameOfMocapData* data, void* pUserData);		// receives data from the server
 void __cdecl MessageHandler(int msgType, char* msg);		            // receives NatNet error mesages
 void resetClient();
@@ -59,29 +61,39 @@ int iConnectionType = ConnectionType_Multicast;
 //int iConnectionType = ConnectionType_Unicast;
 
 NatNetClient* theClient;
+FILE* fp;
 
 char szMyIPAddress[128] = "";
 char szServerIPAddress[128] = "";
 
 int analogSamplesPerMocapFrame = 0;
 
-
-motorDriver motor;
-long m_lStartPosition = motor.getStartPosition();
-long TargetPosition = 0;
-
-long* pPosition = NULL;
-
-BOOL Absolute = FALSE;
-BOOL Immediately = TRUE;
-
-Controller mirrorLaw;
-
-
 // int _tmain(int argc, _TCHAR* argv[])
-int main()
+int main(int argc, char *argv[])
 {
     int iResult;
+
+    // parse command line args
+    if(argc>1)
+    {
+        strcpy(szServerIPAddress, argv[1]);	// specified on command line
+        printf("Connecting to server at %s...\n", szServerIPAddress);
+    }
+    else
+    {
+        strcpy(szServerIPAddress, "");		// not specified - assume server is local machine
+        printf("Connecting to server at LocalMachine\n");
+    }
+    if(argc>2)
+    {
+        strcpy(szMyIPAddress, argv[2]);	    // specified on command line
+        printf("Connecting from %s...\n", szMyIPAddress);
+    }
+    else
+    {
+        strcpy(szMyIPAddress, "");          // not specified - assume server is local machine
+        printf("Connecting from LocalMachine...\n");
+    }
 
     // Create NatNet Client
     iResult = CreateClient(iConnectionType);
@@ -137,8 +149,29 @@ int main()
         }
 	}
 
+	// Create data file for writing received stream into
+	char szFile[MAX_PATH];
+	//char szFolder[MAX_PATH];
+	// GetCurrentDirectory(MAX_PATH, szFolder);
 
-	float x, z;
+	// Fix for the conversion for the two lines commented out above [by Aykut]
+	wchar_t szFolder[MAX_PATH] = {};
+	GetCurrentDirectory(MAX_PATH, szFolder);
+
+
+	if (argc > 3)
+		sprintf(szFile, "%s\\%s", szFolder, argv[3]);
+	else
+		sprintf(szFile, "%s:\Client-output.pts", szFolder);
+	fp = fopen(szFile, "w");
+	if(!fp)
+	{
+		printf("error opening output file %s.  Exiting.", szFile);
+		exit(1);
+	}
+	if(pDataDefs)
+		_WriteHeader(fp, pDataDefs);
+
 	// Ready to receive marker stream!
 	printf("\nClient is connected to server and listening for data...\n");
 	int c;
@@ -199,41 +232,13 @@ int main()
 		}
 		if(bExit)
 			break;
-
-
-		/**********************************************/
-		/* Insert motor control commands from here on */
-
-		// Get the Current Position
-		motor.getPosition(pPosition);		// Read Motor Position
-		sFrameOfMocapData* pData = theClient->GetLastFrameOfData();
-
-		for (int kk = 0; kk < pData->nLabeledMarkers; kk++)
-		{
-			sMarker marker = pData->LabeledMarkers[kk];
-			x += marker.x;
-			z += marker.z;
-		}
-
-		x /= pData->nLabeledMarkers;
-		z /= pData->nLabeledMarkers;
-
-		mirrorLaw.setBallPosition(x, z);
-		mirrorLaw.setBallVelocity(0.0, 0.0);
-
-		TargetPosition = mirrorLaw.computeDesiredPaddlePosition();		// Need conversion to ticks or something here.
-
-																		// Move To Position
-		motor.moveToPosition(TargetPosition, Absolute, Immediately);
-
-		/* End of motor commands */
-		/*************************/
 	}
 	// End of OptiTrack Capture code.
 
-
 	// Done - clean up: OptiTrack stuff.
 	theClient->Uninitialize();
+	_WriteFooter(fp);
+	fclose(fp);
 
 	return ErrorCode_OK;
 }
@@ -316,6 +321,9 @@ void __cdecl DataHandler(sFrameOfMocapData* data, void* pUserData)
 {
 	NatNetClient* pClient = (NatNetClient*) pUserData;
 
+	if(fp)
+		_WriteFrame(fp,data);
+
     int i=0;
 
     // printf("FrameID : %d\n", data->iFrame);
@@ -360,12 +368,90 @@ void __cdecl DataHandler(sFrameOfMocapData* data, void* pUserData)
 	}
 	// End of data receipt.
 
+
+
+	/**********************************************/
+	/* Insert motor control commands from here on */
+
+  motorDriver motor;
+  long m_lStartPosition = motor.getStartPosition();
+  long TargetPosition = 2000;
+
+  long* pPosition = NULL;
+
+  BOOL Absolute = FALSE;
+  BOOL Immediately = TRUE;
+
+
+	// Get the Current Position
+	motor.getPosition(pPosition);
+
+	// Move To Position
+	motor.moveToPosition(TargetPosition, Absolute, Immediately);
+
+	/* End of motor commands */
+	/*************************/
+
 }
 
 // MessageHandler receives NatNet error/debug messages
 void __cdecl MessageHandler(int msgType, char* msg)
 {
 	printf("\n%s\n", msg);
+}
+
+/* File writing routines */
+void _WriteHeader(FILE* fp, sDataDescriptions* pBodyDefs)
+{
+	int i=0;
+
+    if(!pBodyDefs->arrDataDescriptions[0].type == Descriptor_MarkerSet)
+        return;
+
+	sMarkerSetDescription* pMS = pBodyDefs->arrDataDescriptions[0].Data.MarkerSetDescription;
+
+	fprintf(fp, "<MarkerSet>\n\n");
+	fprintf(fp, "<Name>\n%s\n</Name>\n\n", pMS->szName);
+
+	fprintf(fp, "<Markers>\n");
+	for(i=0; i < pMS->nMarkers; i++)
+	{
+		fprintf(fp, "%s\n", pMS->szMarkerNames[i]);
+	}
+	fprintf(fp, "</Markers>\n\n");
+
+	fprintf(fp, "<Data>\n");
+	fprintf(fp, "Frame#\t");
+	for(i=0; i < pMS->nMarkers; i++)
+	{
+		fprintf(fp, "M%dX\tM%dY\tM%dZ\t", i, i, i);
+	}
+	fprintf(fp,"\n");
+
+}
+
+void _WriteFrame(FILE* fp, sFrameOfMocapData* data)
+{
+	fprintf(fp, "%d", data->iFrame);
+
+	/*for(int i =0; i < data->MocapData->nMarkers; i++)
+	{
+		fprintf(fp, "\t%.5f\t%.5f\t%.5f", data->MocapData->Markers[i][0], data->MocapData->Markers[i][1], data->MocapData->Markers[i][2]);
+	}*/
+
+	for (int i = 0; i < data->nLabeledMarkers; i++)
+	{
+		sMarker marker = data->LabeledMarkers[i];
+		fprintf(fp, "\t%.5f\t%.5f\t%.5f", marker.x, marker.y, marker.z);
+	}
+
+	fprintf(fp, "\n");
+}
+
+void _WriteFooter(FILE* fp)
+{
+	fprintf(fp, "</Data>\n\n");
+	fprintf(fp, "</MarkerSet>\n");
 }
 
 void resetClient()
