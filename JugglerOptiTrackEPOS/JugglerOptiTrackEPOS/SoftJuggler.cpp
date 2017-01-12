@@ -38,6 +38,7 @@ Usage [optional]:
 #include <conio.h>
 #include <winsock2.h>
 #include <iostream>
+#include <thread>
 using namespace std;
 
 #include "NatNetTypes.h"
@@ -105,10 +106,44 @@ double zPosOld = 0.0;
 double xVel = 0.0;
 double zVel = 0.0;
 
+void motor_thread_function(int const & motorSetPosition)
+{
+	int & y = const_cast<int &>(motorSetPosition);
+	y++;
+	std::cout << "Motor Thread :: ID = " << std::this_thread::get_id() << std::endl;
+	// call motor
+	std::cout << "Motor Thread :: motorSetPosition = " << motorSetPosition << std::endl;
+	for (int i = 0; i < 10000; i++);
+	std::cout << "Motor Thread Finished" << std::endl;
+}
+
 // int _tmain(int argc, _TCHAR* argv[])
 int main()
 {
+	std::cout << "Main Thread :: ID = " << std::this_thread::get_id() << std::endl;
+
 	int iResult;
+
+	int motorSetPosition = 0;
+	std::cout << "In Main Thread : Before Thread Start motorSetPosition = " << motorSetPosition << std::endl;
+
+	std::cout << "Start Motor Thread" << std::endl;
+	std::thread threadObj(motor_thread_function, std::ref(motorSetPosition));
+	if(threadObj.joinable())
+	{
+
+		threadObj.join();
+		std::cout << "Joined Thread " << std::endl;
+		//std::cout << "Detaching Thread " << std::endl;
+		//threadObj.detach();
+	}
+	
+	std::cout << "In Main Thread : After Thread Joins motorSetPosition = " << motorSetPosition << std::endl;
+
+
+	//std::cout << "Exit of Main function" << std::endl;
+	return 0;
+
 
 	// Create NatNet Client
 	iResult = CreateClient(iConnectionType);
