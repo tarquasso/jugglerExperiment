@@ -20,7 +20,7 @@ private:
 	BOOL endOfSel = FALSE;
 	DWORD errorCode = 0;
 
-	__int8 m_bMode = 1;
+	__int8 m_bMode = -1;
 	long m_lStartPosition = 0;
 
 public:

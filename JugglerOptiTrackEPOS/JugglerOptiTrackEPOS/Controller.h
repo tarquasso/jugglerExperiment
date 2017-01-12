@@ -11,8 +11,8 @@ using namespace Eigen;
 class Controller
 {
 private:
-	float r = 0.131;	// Radius of the ball
-	float ox = -0.145;	// Offset from the world frame to the paddle frame in the x-direction
+	double r = 0.131;	// Radius of the ball
+	double ox = -0.145;	// Offset from the world frame to the paddle frame in the x-direction
 	float oz = 0.0;		// Offset from the world frame to the paddle frame in the z-direction
 
 	float x, z, xp, zp;
@@ -33,8 +33,8 @@ private:
 	float Href;		// Reference vertical energy of the ball
 	float Htilde;	// Error in vertical energy of the ball
 
-	float g = 9.81;	// Gravitational acceleration
-	float beta = PI / 180 * 36;		// Inclination angle of the table
+	double g = 9.81;	// Gravitational acceleration
+	double beta = PI / 180 * 36;		// Inclination angle of the table
 
 	float kappa0;
 	float kappa1;
