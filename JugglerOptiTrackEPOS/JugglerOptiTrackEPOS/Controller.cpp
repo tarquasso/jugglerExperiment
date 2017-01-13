@@ -1,4 +1,5 @@
 #include "Controller.h"
+#include <iostream>
 
 Controller::Controller()
 {
@@ -22,7 +23,7 @@ Controller::Controller()
 
 }
 
-Controller::Controller(float x, float z, float xp, float zp)
+Controller::Controller(double x, double z, double xp, double zp)
 {
 	//JRigidInv.resize(2, 2);
 	//xip.resize(2, 1);
@@ -60,12 +61,35 @@ Controller::~Controller()
 }
 
 
+void Controller::init()
+{
+// create a motor object
+
+//std::cout << "Main Thread :: ID = " << std::this_thread::get_id() << std::endl;
+
+int motorSetPosition = 0;
+//std::cout << "In Main Thread : Before Thread Start motorSetPosition = " << motorSetPosition << std::endl;
+
+std::cout << "Start Motor Thread" << std::endl;
+std::thread threadObj(&MotorDriver::motor_control_thread_function, &this->motorObj, std::ref(motorSetPosition));
+if (threadObj.joinable())
+{
+
+	threadObj.join();
+	std::cout << "Joined Thread " << std::endl;
+	//std::cout << "Detaching Thread " << std::endl;
+	//threadObj.detach();
+}
+
+std::cout << "In Main Thread : After Thread Joins motorSetPosition = " << motorSetPosition << std::endl;
+
+}
 Vector2d Controller::getBallPosition()
 {
 	return Vector2d(x, z);
 }
 
-void Controller::setBallPosition(float a, float b)
+void Controller::setBallPosition(double a, double b)
 {
 	x = a;
 	z = b;
@@ -76,24 +100,24 @@ Vector2d Controller::getBallVelocity()
 	return Vector2d(xp, zp);
 }
 
-void Controller::setBallVelocity(float a, float b)
+void Controller::setBallVelocity(double a, double b)
 {
 	xp = a;
 	zp = b;
 }
 
 
-float Controller::getReferenceEnergy()
+double Controller::getReferenceEnergy()
 {
 	return Href;
 }
 
-void Controller::setReferenceEnergy(float referenceEnergy)
+void Controller::setReferenceEnergy(double referenceEnergy)
 {
 	Href = referenceEnergy;
 }
 
-float Controller::computeVerticalEnergy()
+double Controller::computeVerticalEnergy()
 {
 	return 1 / 2 * pow(zp, 2) + g*sin(beta)*z;
 }
@@ -131,11 +155,11 @@ void Controller::updateReferenceVelocity()
 
 
 
-float Controller::computeDesiredPaddlePosition()
+double Controller::computeDesiredPaddlePosition()
 {
-	float rhoBar = ox;
-	float rhoRef = 0.0;
-	float rhopRef = 0.0;
+	double rhoBar = ox;
+	double rhoRef = 0.0;
+	double rhopRef = 0.0;
 
 	H = computeVerticalEnergy();
 	Htilde = H - Href;
@@ -147,4 +171,35 @@ float Controller::computeDesiredPaddlePosition()
 	rhopRef = sigmapRef*cos(psiRef) - sigmapRef*psipRef*sin(psiRef);
 
 	return  -(kappa0 + kappa1*Htilde)*psiRef + kappa00*(rhoRef - rhoBar) + kappa01*rhopRef;
+}
+
+
+void Controller::controlArm()
+{
+
+	/**********************************************/
+	/* Insert motor control commands from here on */
+
+	// Get the Current Position
+	//motor.getPosition(pPosition);		// Read Motor Position
+
+	double TargetPositionRad = this->computeDesiredPaddlePosition();		// Need conversion to ticks or something here.
+
+																		// std::cout << "I'm commanding " << TargetPositionRad << "[rad] to the motor.\n";
+
+																		//	while (!pTargetReached)
+																		//	{
+																		//motor.getPositionRad(&pPositionRad);		// Read Motor Position
+
+																		//motor.moveToPositionRad(TargetPositionRad, Absolute, Immediately);
+
+																		//motor.getMovementState(&pTargetReached, &pErrorCode);
+
+	motorObj.setDesiredMotorPosition(TargetPositionRad);
+
+	std::cout << "Exiting commandMotor(double, double, double, double)\n";
+
+	//	}
+	/* End of motor commands */
+	/*************************/
 }

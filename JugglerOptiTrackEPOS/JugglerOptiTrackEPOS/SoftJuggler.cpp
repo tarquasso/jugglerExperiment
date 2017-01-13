@@ -1,37 +1,8 @@
-//=============================================================================
-// Copyright � 2014 NaturalPoint, Inc. All Rights Reserved.
-//
-// This software is provided by the copyright holders and contributors "as is" and
-// any express or implied warranties, including, but not limited to, the implied
-// warranties of merchantability and fitness for a particular purpose are disclaimed.
-// In no event shall NaturalPoint, Inc. or contributors be liable for any direct,
-// indirect, incidental, special, exemplary, or consequential damages
-// (including, but not limited to, procurement of substitute goods or services;
-// loss of use, data, or profits; or business interruption) however caused
-// and on any theory of liability, whether in contract, strict liability,
-// or tort (including negligence or otherwise) arising in any way out of
-// the use of this software, even if advised of the possibility of such damage.
-//=============================================================================
-
-
 /*
-
 SampleClient.cpp
-
-This program connects to a NatNet server, receives a data stream, and writes that data stream
-to an ascii file.  The purpose is to illustrate using the NatNetClient class.
-
-Usage [optional]:
-
-	SampleClient [ServerIP] [LocalIP] [OutputFilename]
-
-	[ServerIP]			IP address of the server (e.g. 192.168.0.107) ( defaults to local machine)
-	[OutputFilename]	Name of points file (pts) to write out.  defaults to Client-output.pts
-
 */
 
 // #define PI 3.14159265358979;
-
 
 #include <stdio.h>
 #include <tchar.h>
@@ -70,10 +41,6 @@ int analogSamplesPerMocapFrame = 0;
 double fRate = 0.0;
 double expectedFramePeriod = 0.0;
 
-motorDriver motor;
-long m_lStartPosition = motor.getStartPosition();
-float TargetPositionRad = 0;
-
 long* pPosition = NULL;
 
 BOOL Absolute = TRUE;
@@ -96,7 +63,7 @@ DWORD pTimeOut;
 DWORD pErrorCode;
 
 
-Controller mirrorLaw;
+Controller mirrorLawController;
 double xPos = 0.0;
 double zPos = 0.0;
 
@@ -106,29 +73,19 @@ double zPosOld = 0.0;
 double xVel = 0.0;
 double zVel = 0.0;
 
-void motor_thread_function(int const & motorSetPosition)
-{
-	int & y = const_cast<int &>(motorSetPosition);
-	y++;
-	std::cout << "Motor Thread :: ID = " << std::this_thread::get_id() << std::endl;
-	// call motor
-	std::cout << "Motor Thread :: motorSetPosition = " << motorSetPosition << std::endl;
-	for (int i = 0; i < 10000; i++);
-	std::cout << "Motor Thread Finished" << std::endl;
-}
-
 // int _tmain(int argc, _TCHAR* argv[])
 int main()
 {
-	std::cout << "Main Thread :: ID = " << std::this_thread::get_id() << std::endl;
+	// create a motor object
+	MotorDriver motorObj;
 
-	int iResult;
+	std::cout << "Main Thread :: ID = " << std::this_thread::get_id() << std::endl;
 
 	int motorSetPosition = 0;
 	std::cout << "In Main Thread : Before Thread Start motorSetPosition = " << motorSetPosition << std::endl;
 
 	std::cout << "Start Motor Thread" << std::endl;
-	std::thread threadObj(motor_thread_function, std::ref(motorSetPosition));
+	std::thread threadObj(&MotorDriver::motor_control_thread_function, &motorObj, std::ref(motorSetPosition));
 	if(threadObj.joinable())
 	{
 
@@ -140,10 +97,11 @@ int main()
 	
 	std::cout << "In Main Thread : After Thread Joins motorSetPosition = " << motorSetPosition << std::endl;
 
-
 	//std::cout << "Exit of Main function" << std::endl;
 	return 0;
 
+
+	int iResult;
 
 	// Create NatNet Client
 	iResult = CreateClient(iConnectionType);
@@ -490,7 +448,10 @@ void __cdecl DataHandler(sFrameOfMocapData* data, void* pUserData)
 	printf("\t%3.2f\t%3.2f\t%3.2f\t%3.2f\n",
 		xPos, zPos, xVel, zVel);
 
-	commandMotor(xPos, zPos, xVel, zVel);
+	//Call MirrorLaw Controller
+	mirrorLawController.setBallPosition(xPos, zPos);
+	mirrorLawController.setBallVelocity(xVel, zVel);
+	mirrorLawController.controlArm();
 
 	xPosOld = xPos;
 	zPosOld = zPos;
@@ -517,35 +478,4 @@ void resetClient()
 		printf("error re-initting Client\n");
 
 
-}
-
-
-void commandMotor(double x, double z, double xp, double zp)
-{
-	mirrorLaw.setBallPosition(x, z);
-	mirrorLaw.setBallVelocity(xp, zp);
-
-	/**********************************************/
-	/* Insert motor control commands from here on */
-
-	// Get the Current Position
-	motor.getPosition(pPosition);		// Read Motor Position
-
-	TargetPositionRad = mirrorLaw.computeDesiredPaddlePosition();		// Need conversion to ticks or something here.
-
-	// std::cout << "I'm commanding " << TargetPositionRad << "[rad] to the motor.\n";
-
-	//	while (!pTargetReached)
-	//	{
-	//motor.getPositionRad(&pPositionRad);		// Read Motor Position
-
-	//motor.moveToPositionRad(TargetPositionRad, Absolute, Immediately);
-
-	//motor.getMovementState(&pTargetReached, &pErrorCode);
-
-	std::cout << "Exiting commandMotor(double, double, double, double)\n";
-
-	//	}
-		/* End of motor commands */
-		/*************************/
 }
