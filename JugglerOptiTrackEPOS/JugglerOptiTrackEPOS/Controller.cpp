@@ -70,7 +70,7 @@ void Controller::init()
 {
 // create a motor object
 
-//std::cout << "Main Thread :: ID = " << std::this_thread::get_id() << std::endl;
+std::cout << "Controller Init, Thread :: ID = " << std::this_thread::get_id() << std::endl;
 
 int motorSetPosition = 0;
 //std::cout << "In Main Thread : Before Thread Start motorSetPosition = " << motorSetPosition << std::endl;
@@ -221,16 +221,16 @@ void Controller::controlArm()
 
 	//for (int count = 0; count < 1000; count++) {
 		bytes_wrote = my_serial.write(sentNumber.binary, FLOATSIZE);
-		//my_serial.write(&endMessage, 1);
+		my_serial.write(&endMessage, 1);
 
-		//bytes_read = my_serial.read(incomingData, FLOATSIZE);
+		bytes_read = my_serial.read(incomingData, FLOATSIZE);
 
-		// for (int i = 1; i < FLOATSIZE; i++)
-			// receivedNumber.binary[i] = incomingData[i];
+		 for (int i = 1; i < FLOATSIZE; i++)
+			receivedNumber.binary[i] = incomingData[i];
 
-		//cout << "Iteration: " << count << ", Bytes written: ";
-		//cout << bytes_wrote << ", What is sent: " << sentNumber.floatingPoint << ", Bytes read: ";
-		//cout << bytes_read << ", What is read: " << receivedNumber.floatingPoint << endl;
+		cout << "Bytes written: ";
+		cout << bytes_wrote << ", What is sent: " << sentNumber.floatingPoint << ", Bytes read: ";
+		cout << bytes_read << ", What is read: " << receivedNumber.floatingPoint << endl;
 	//}
 
 
