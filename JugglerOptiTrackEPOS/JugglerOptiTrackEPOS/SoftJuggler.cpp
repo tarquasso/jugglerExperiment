@@ -77,7 +77,7 @@ double zVel = 0.0;
 int main()
 {
 	// create a motor object
-	MotorDriver motorObj;
+	//MotorDriver motorObj;
 
 	std::cout << "Main Thread :: ID = " << std::this_thread::get_id() << std::endl;
 
@@ -85,7 +85,7 @@ int main()
 	std::cout << "In Main Thread : Before Thread Start motorSetPosition = " << motorSetPosition << std::endl;
 
 	std::cout << "Start Motor Thread" << std::endl;
-	std::thread threadObj(&MotorDriver::motor_control_thread_function, &motorObj, std::ref(motorSetPosition));
+	std::thread threadObj(&MotorDriver::motor_control_thread_function, &mirrorLawController.motorObj, std::ref(motorSetPosition));
 	if(threadObj.joinable())
 	{
 
@@ -98,7 +98,7 @@ int main()
 	std::cout << "In Main Thread : After Thread Joins motorSetPosition = " << motorSetPosition << std::endl;
 
 	//std::cout << "Exit of Main function" << std::endl;
-	return 0;
+	//return 0;
 
 
 	int iResult;
@@ -250,8 +250,6 @@ int main()
 
 		//std::cout << "x-position is: " << x << "\n\n";
 
-
-
 	// Done - clean up: OptiTrack stuff.
 	theClient->Uninitialize();
 
@@ -270,7 +268,6 @@ int CreateClient(int iConnectionType)
 
 	// create NatNet client
 	theClient = new NatNetClient(iConnectionType);
-
 
 
 	// set the callback handlers

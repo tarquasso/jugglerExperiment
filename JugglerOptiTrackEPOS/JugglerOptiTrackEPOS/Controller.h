@@ -43,6 +43,8 @@ private:
 	double kappa00;
 	double kappa01;
 
+public:
+
 	MotorDriver motorObj;
 
 public:
