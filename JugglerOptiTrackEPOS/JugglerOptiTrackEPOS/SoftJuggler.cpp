@@ -52,6 +52,8 @@ int iConnectionType = ConnectionType_Multicast;
 //int iConnectionType = ConnectionType_Unicast;
 
 NatNetClient* theClient;
+Controller mirrorLawController;
+
 
 char szMyIPAddress[128] = "";
 char szServerIPAddress[128] = "";
@@ -83,7 +85,6 @@ DWORD pTimeOut;
 DWORD pErrorCode;
 
 
-
 double xPos = 0.0;
 double zPos = 0.0;
 
@@ -98,8 +99,8 @@ double zVel = 0.0;
 // int _tmain(int argc, _TCHAR* argv[])
 int main()
 {
-	Controller mirrorLawController;
-	
+	mirrorLawController.init();
+
 	// create a motor object
 	//MotorDriver motorObj;
 
@@ -450,9 +451,9 @@ void __cdecl DataHandler(sFrameOfMocapData* data, void* pUserData)
 		xPos, zPos, xVel, zVel);
 
 	//Call MirrorLaw Controller
-	//mirrorLawController.setBallPosition(xPos, zPos);
-	//mirrorLawController.setBallVelocity(xVel, zVel);
-	//mirrorLawController.controlArm();
+	mirrorLawController.setBallPosition(xPos, zPos);
+	mirrorLawController.setBallVelocity(xVel, zVel);
+	mirrorLawController.controlArm();
 
 	xPosOld = xPos;
 	zPosOld = zPos;

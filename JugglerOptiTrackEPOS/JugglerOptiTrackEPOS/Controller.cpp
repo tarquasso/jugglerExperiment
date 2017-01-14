@@ -2,7 +2,8 @@
 #include <iostream>
 
 Controller::Controller():
-	my_serial(port, baud, serial::Timeout::simpleTimeout(timeOut))
+	my_serial(port, baud, serial::Timeout::simpleTimeout(timeOut)),
+	m_initialized(false)
 {
 	sigmaRef = 0.0;
 	psiRef = 0.0;
@@ -21,9 +22,6 @@ Controller::Controller():
 	H = 1 / 2 * pow(0.0, 2) + g*sin(beta)*0.0;
 	Href = getReferenceEnergy();
 	Htilde = H - Href;
-
-	this->init();
-
 }
 
 // Controller::Controller(double x, double z, double xp, double zp)
@@ -99,6 +97,8 @@ else
 cout << " No." << endl;
 
 //std::cout << "In Main Thread : After Thread Joins motorSetPosition = " << motorSetPosition << std::endl;
+
+m_initialized = true;
 
 }
 Vector2d Controller::getBallPosition()
@@ -193,7 +193,8 @@ double Controller::computeDesiredPaddlePosition()
 
 void Controller::controlArm()
 {
-
+	if(m_initialized)
+	{
 	/**********************************************/
 	/* Insert motor control commands from here on */
 
@@ -239,4 +240,8 @@ void Controller::controlArm()
 	//	}
 	/* End of motor commands */
 	/*************************/
+	}
+	else {
+		printf("please init controller!");
+	}
 }

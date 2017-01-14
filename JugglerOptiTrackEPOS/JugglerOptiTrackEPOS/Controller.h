@@ -31,6 +31,8 @@ typedef union {
 class Controller
 {
 private:
+	bool m_initialized;
+
 	double r = 0.131;	// Radius of the ball
 	double ox = -0.145;	// Offset from the world frame to the paddle frame in the x-direction
 	double oz = 0.0;		// Offset from the world frame to the paddle frame in the z-direction
