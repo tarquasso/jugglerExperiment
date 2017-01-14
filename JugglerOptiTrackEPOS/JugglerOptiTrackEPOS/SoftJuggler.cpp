@@ -3,6 +3,7 @@ SampleClient.cpp
 */
 
 // #define PI 3.14159265358979;
+#define FLOATSIZE 4
 
 #include <stdio.h>
 #include <tchar.h>
@@ -10,12 +11,24 @@ SampleClient.cpp
 #include <winsock2.h>
 #include <iostream>
 #include <thread>
+#include <string>
+#include <cstdio>
+#include <windows.h>
 using namespace std;
 
 #include "NatNetTypes.h"
 #include "NatNetClient.h"
 #include "motorDriver.h"
 #include "controller.h"
+
+#include "serial/serial.h"
+
+using std::string;
+using std::exception;
+using std::cout;
+using std::cerr;
+using std::endl;
+using std::vector;
 
 #pragma warning( disable : 4996 )
 
@@ -24,6 +37,31 @@ void __cdecl MessageHandler(int msgType, char* msg);		            // receives Na
 void resetClient();
 int CreateClient(int iConnectionType);
 void commandMotor(double x, double z, double xp, double zp);
+
+typedef union {
+	float floatingPoint;
+	uint8_t binary[FLOATSIZE];
+} binaryFloat;
+
+
+void my_sleep(unsigned long milliseconds) {
+	Sleep(milliseconds); // 100 ms
+}
+
+void enumerate_ports()
+{
+	vector<serial::PortInfo> devices_found = serial::list_ports();
+
+	vector<serial::PortInfo>::iterator iter = devices_found.begin();
+
+	while (iter != devices_found.end())
+	{
+		serial::PortInfo device = *iter++;
+
+		printf("(%s, %s, %s)\n", device.port.c_str(), device.description.c_str(),
+			device.hardware_id.c_str());
+	}
+}
 
 unsigned int MyServersDataPort = 3130;
 //unsigned int MyServersDataPort = 3883;
@@ -73,6 +111,8 @@ double zPosOld = 0.0;
 double xVel = 0.0;
 double zVel = 0.0;
 
+
+
 // int _tmain(int argc, _TCHAR* argv[])
 int main()
 {
@@ -99,6 +139,46 @@ int main()
 
 	//std::cout << "Exit of Main function" << std::endl;
 	//return 0;
+
+	// Serial Communication Test
+
+
+	string port = "COM5";
+	unsigned long baud = 9600;
+	uint8_t incomingData[FLOATSIZE];			// don't forget to pre-allocate memory
+	binaryFloat sentNumber;
+	binaryFloat receivedNumber;
+	uint8_t endMessage = 0x0A;					//New Line Character in Hex.
+	size_t bytes_wrote;
+	size_t bytes_read;
+
+	
+
+	// port, baudrate, timeout in milliseconds
+	serial::Serial my_serial(port, baud, serial::Timeout::simpleTimeout(10));
+
+	cout << "Is the serial port open?";
+	if (my_serial.isOpen())
+		cout << " Yes." << endl;
+	else
+		cout << " No." << endl;
+
+	cout << endMessage;
+
+
+	for (int count = 0; count < 1000; count++) {
+		bytes_wrote = my_serial.write(sentNumber.binary, FLOATSIZE);
+		my_serial.write(&endMessage, 1);
+
+		bytes_read = my_serial.read(incomingData, FLOATSIZE);
+
+		for (int i = 1; i = FLOATSIZE; i++)
+			receivedNumber.binary[i] = incomingData[i];
+
+		cout << "Iteration: " << count << ", Bytes written: ";
+		cout << bytes_wrote << ", What is sent: " << sentNumber.floatingPoint << ", Bytes read: ";
+		cout << bytes_read << ", What is read: " << receivedNumber.floatingPoint << endl;
+	}
 
 
 	int iResult;
