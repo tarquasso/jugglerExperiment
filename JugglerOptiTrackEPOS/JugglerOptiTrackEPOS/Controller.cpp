@@ -1,7 +1,8 @@
 #include "Controller.h"
 #include <iostream>
 
-Controller::Controller()
+Controller::Controller():
+	my_serial(port, baud, serial::Timeout::simpleTimeout(timeOut))
 {
 	sigmaRef = 0.0;
 	psiRef = 0.0;
@@ -21,39 +22,43 @@ Controller::Controller()
 	Href = getReferenceEnergy();
 	Htilde = H - Href;
 
+	this->init();
+
 }
 
-Controller::Controller(double x, double z, double xp, double zp)
-{
+// Controller::Controller(double x, double z, double xp, double zp)
+// {
 	//JRigidInv.resize(2, 2);
 	//xip.resize(2, 1);
 	//qpRef.resize(2, 1);
 	
-	sigmaRef = sqrt(-pow(r, 2) + pow(ox - x, 2) + pow(oz - z, 2));
-	psiRef = atan2((oz - z)*sigmaRef + r*(x - ox), (x - ox)*sigmaRef + r*(z - oz));
+	//sigmaRef = sqrt(-pow(r, 2) + pow(ox - x, 2) + pow(oz - z, 2));
+	//psiRef = atan2((oz - z)*sigmaRef + r*(x - ox), (x - ox)*sigmaRef + r*(z - oz));
 
-	JRigidInv(0,0) = (ox*r - r*x + sqrt(pow(ox, 2) - pow(r, 2) - 2 * ox*x + pow(x, 2) + pow(oz - z, 2))*(-oz + z)) /
-		((pow(ox - x, 2) + pow(oz - z, 2))*sqrt(pow(ox, 2) - pow(r, 2) - 2 * ox*x + pow(x, 2) + pow(oz - z, 2)));
+	//JRigidInv(0,0) = (ox*r - r*x + sqrt(pow(ox, 2) - pow(r, 2) - 2 * ox*x + pow(x, 2) + pow(oz - z, 2))*(-oz + z)) /
+	//	((pow(ox - x, 2) + pow(oz - z, 2))*sqrt(pow(ox, 2) - pow(r, 2) - 2 * ox*x + pow(x, 2) + pow(oz - z, 2)));
 
-	JRigidInv(0, 1) = (oz*r + (ox - x)*sqrt(pow(ox, 2) - pow(r, 2) - 2 * ox*x + pow(x, 2) + pow(oz - z, 2)) - r*z) /
-		((pow(ox - x, 2) + pow(oz - z, 2))*sqrt(pow(ox, 2) - pow(r, 2) - 2 * ox*x + pow(x, 2) + pow(oz - z, 2)));
+	//JRigidInv(0, 1) = (oz*r + (ox - x)*sqrt(pow(ox, 2) - pow(r, 2) - 2 * ox*x + pow(x, 2) + pow(oz - z, 2)) - r*z) /
+	//	((pow(ox - x, 2) + pow(oz - z, 2))*sqrt(pow(ox, 2) - pow(r, 2) - 2 * ox*x + pow(x, 2) + pow(oz - z, 2)));
 
-	JRigidInv(1, 0) = (-ox + x) / sqrt(pow(ox, 2) - pow(r, 2) - 2 * ox*x + pow(x, 2) + pow(oz - z, 2));
+	//JRigidInv(1, 0) = (-ox + x) / sqrt(pow(ox, 2) - pow(r, 2) - 2 * ox*x + pow(x, 2) + pow(oz - z, 2));
 
-	JRigidInv(1,1) = (-oz + z) / sqrt(pow(ox, 2) - pow(r, 2) - 2 * ox*x + pow(x, 2) + pow(oz - z, 2));
+	//JRigidInv(1,1) = (-oz + z) / sqrt(pow(ox, 2) - pow(r, 2) - 2 * ox*x + pow(x, 2) + pow(oz - z, 2));
 
-	xip(0) = xp;
-	xip(1) = zp;
+	//xip(0) = xp;
+	//xip(1) = zp;
 
-	qpRef = JRigidInv*xip;
+	//qpRef = JRigidInv*xip;
 
-	psipRef = qpRef(0);
-	sigmapRef = qpRef(1);
+	//psipRef = qpRef(0);
+	//sigmapRef = qpRef(1);
 
-	H = 1 / 2 * pow(zp, 2) + g*sin(beta)*z;
-	Href = getReferenceEnergy();
-	Htilde = H - Href;
-}
+	//H = 1 / 2 * pow(zp, 2) + g*sin(beta)*z;
+	//Href = getReferenceEnergy();
+	//Htilde = H - Href;
+
+
+//}
 
 Controller::~Controller()
 {
@@ -70,18 +75,30 @@ void Controller::init()
 int motorSetPosition = 0;
 //std::cout << "In Main Thread : Before Thread Start motorSetPosition = " << motorSetPosition << std::endl;
 
+
 std::cout << "Start Motor Thread" << std::endl;
+// ToDo: get a handle on that thread
 std::thread threadObj(&MotorDriver::motor_control_thread_function, &this->motorObj, std::ref(motorSetPosition));
 if (threadObj.joinable())
 {
-
-	threadObj.join();
-	std::cout << "Joined Thread " << std::endl;
-	//std::cout << "Detaching Thread " << std::endl;
-	//threadObj.detach();
+	//threadObj.join();
+	//std::cout << "Joined Thread " << std::endl;
+	std::cout << "Detaching Thread " << std::endl;
+	threadObj.detach();
 }
 
-std::cout << "In Main Thread : After Thread Joins motorSetPosition = " << motorSetPosition << std::endl;
+//// port, baudrate, timeout in milliseconds
+//my_serial.setBaudrate(baud);
+//my_serial.setPort(port);
+//my_serial.setTimeout(serial::Timeout::max(), timeOut, 0, timeOut, 0);
+
+cout << "Is the serial port open?";
+if (my_serial.isOpen())
+cout << " Yes." << endl;
+else
+cout << " No." << endl;
+
+//std::cout << "In Main Thread : After Thread Joins motorSetPosition = " << motorSetPosition << std::endl;
 
 }
 Vector2d Controller::getBallPosition()
@@ -197,7 +214,27 @@ void Controller::controlArm()
 
 	motorObj.setDesiredMotorPosition(TargetPositionRad);
 
-	std::cout << "Exiting commandMotor(double, double, double, double)\n";
+	sentNumber.floatingPoint = 90.12f;
+	uint8_t endMessage = 0x0A;					//New Line Character in Hex.
+	size_t bytes_wrote;
+	size_t bytes_read = 0;
+
+	//for (int count = 0; count < 1000; count++) {
+		bytes_wrote = my_serial.write(sentNumber.binary, FLOATSIZE);
+		//my_serial.write(&endMessage, 1);
+
+		//bytes_read = my_serial.read(incomingData, FLOATSIZE);
+
+		// for (int i = 1; i < FLOATSIZE; i++)
+			// receivedNumber.binary[i] = incomingData[i];
+
+		//cout << "Iteration: " << count << ", Bytes written: ";
+		//cout << bytes_wrote << ", What is sent: " << sentNumber.floatingPoint << ", Bytes read: ";
+		//cout << bytes_read << ", What is read: " << receivedNumber.floatingPoint << endl;
+	//}
+
+
+	//std::cout << "Exiting commandMotor(double, double, double, double)\n";
 
 	//	}
 	/* End of motor commands */

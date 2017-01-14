@@ -32,7 +32,6 @@ private:
 	//char* strInterfaceName = "USB";
 	//char* strPortName = "USB0";
 
-
 public:
 	
 	MotorDriver();

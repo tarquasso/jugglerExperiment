@@ -3,17 +3,12 @@ SampleClient.cpp
 */
 
 // #define PI 3.14159265358979;
-#define FLOATSIZE 4
 
 #include <stdio.h>
 #include <tchar.h>
 #include <conio.h>
 #include <winsock2.h>
-#include <iostream>
 #include <thread>
-#include <string>
-#include <cstdio>
-#include <windows.h>
 using namespace std;
 
 #include "NatNetTypes.h"
@@ -21,14 +16,6 @@ using namespace std;
 #include "motorDriver.h"
 #include "controller.h"
 
-#include "serial/serial.h"
-
-using std::string;
-using std::exception;
-using std::cout;
-using std::cerr;
-using std::endl;
-using std::vector;
 
 #pragma warning( disable : 4996 )
 
@@ -37,11 +24,6 @@ void __cdecl MessageHandler(int msgType, char* msg);		            // receives Na
 void resetClient();
 int CreateClient(int iConnectionType);
 void commandMotor(double x, double z, double xp, double zp);
-
-typedef union {
-	float floatingPoint;
-	uint8_t binary[FLOATSIZE];
-} binaryFloat;
 
 
 void my_sleep(unsigned long milliseconds) {
@@ -101,7 +83,7 @@ DWORD pTimeOut;
 DWORD pErrorCode;
 
 
-Controller mirrorLawController;
+
 double xPos = 0.0;
 double zPos = 0.0;
 
@@ -116,70 +98,12 @@ double zVel = 0.0;
 // int _tmain(int argc, _TCHAR* argv[])
 int main()
 {
+	Controller mirrorLawController;
+	
 	// create a motor object
 	//MotorDriver motorObj;
 
 	std::cout << "Main Thread :: ID = " << std::this_thread::get_id() << std::endl;
-
-	int motorSetPosition = 0;
-	std::cout << "In Main Thread : Before Thread Start motorSetPosition = " << motorSetPosition << std::endl;
-
-	std::cout << "Start Motor Thread" << std::endl;
-	std::thread threadObj(&MotorDriver::motor_control_thread_function, &mirrorLawController.motorObj, std::ref(motorSetPosition));
-	if(threadObj.joinable())
-	{
-
-		threadObj.join();
-		std::cout << "Joined Thread " << std::endl;
-		//std::cout << "Detaching Thread " << std::endl;
-		//threadObj.detach();
-	}
-	
-	std::cout << "In Main Thread : After Thread Joins motorSetPosition = " << motorSetPosition << std::endl;
-
-	//std::cout << "Exit of Main function" << std::endl;
-	//return 0;
-
-	// Serial Communication Test
-
-
-	string port = "COM5";
-	unsigned long baud = 9600;
-	uint8_t incomingData[FLOATSIZE];			// don't forget to pre-allocate memory
-	binaryFloat sentNumber;
-	binaryFloat receivedNumber;
-	uint8_t endMessage = 0x0A;					//New Line Character in Hex.
-	size_t bytes_wrote;
-	size_t bytes_read;
-
-	
-
-	// port, baudrate, timeout in milliseconds
-	serial::Serial my_serial(port, baud, serial::Timeout::simpleTimeout(10));
-
-	cout << "Is the serial port open?";
-	if (my_serial.isOpen())
-		cout << " Yes." << endl;
-	else
-		cout << " No." << endl;
-
-	cout << endMessage;
-
-
-	for (int count = 0; count < 1000; count++) {
-		bytes_wrote = my_serial.write(sentNumber.binary, FLOATSIZE);
-		my_serial.write(&endMessage, 1);
-
-		bytes_read = my_serial.read(incomingData, FLOATSIZE);
-
-		for (int i = 1; i = FLOATSIZE; i++)
-			receivedNumber.binary[i] = incomingData[i];
-
-		cout << "Iteration: " << count << ", Bytes written: ";
-		cout << bytes_wrote << ", What is sent: " << sentNumber.floatingPoint << ", Bytes read: ";
-		cout << bytes_read << ", What is read: " << receivedNumber.floatingPoint << endl;
-	}
-
 
 	int iResult;
 
@@ -449,7 +373,7 @@ void __cdecl DataHandler(sFrameOfMocapData* data, void* pUserData)
 		//printf("Rigid Body [ID=%d  Error=%3.2f  Valid=%d]\n", data->RigidBodies[i].ID, data->RigidBodies[i].MeanError, bTrackingValid);
 		// printf("\tx\ty\tz\tqx\tqy\tqz\tqw\n");
 
-		/*  Uncomment this to print out the rigid body
+		// Uncomment this to print out the rigid body
 		printf("\t%3.2f\t%3.2f\t%3.2f\t%3.2f\t%3.2f\t%3.2f\t%3.2f\n",
 			data->RigidBodies[i].x,
 			data->RigidBodies[i].y,
@@ -458,7 +382,7 @@ void __cdecl DataHandler(sFrameOfMocapData* data, void* pUserData)
 			data->RigidBodies[i].qy,
 			data->RigidBodies[i].qz,
 			data->RigidBodies[i].qw);
-		*/
+		
 
 
 		/* printf("\tRigid body markers [Count=%d]\n", data->RigidBodies[i].nMarkers);
@@ -526,9 +450,9 @@ void __cdecl DataHandler(sFrameOfMocapData* data, void* pUserData)
 		xPos, zPos, xVel, zVel);
 
 	//Call MirrorLaw Controller
-	mirrorLawController.setBallPosition(xPos, zPos);
-	mirrorLawController.setBallVelocity(xVel, zVel);
-	mirrorLawController.controlArm();
+	//mirrorLawController.setBallPosition(xPos, zPos);
+	//mirrorLawController.setBallVelocity(xVel, zVel);
+	//mirrorLawController.controlArm();
 
 	xPosOld = xPos;
 	zPosOld = zPos;
