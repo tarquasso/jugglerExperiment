@@ -28,7 +28,6 @@ typedef union {
 	uint8_t binary[FLOATSIZE];
 } binaryFloat;
 
-
 class Controller
 {
 private:
@@ -73,13 +72,15 @@ private:
 
 	serial::Serial my_serial;
 
+	Vector2d puckPos;
+
 public:
 
 	MotorDriver motorObj;
 
 public:
 	Controller();
-	Controller(double x, double z, double xp, double zp);
+	//Controller(double x, double z, double xp, double zp);
 	~Controller();
 
 	void init();
