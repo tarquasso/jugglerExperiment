@@ -4,6 +4,7 @@ SampleClient.cpp
 
 // #define PI 3.14159265358979;
 
+
 #include <stdio.h>
 #include <tchar.h>
 #include <conio.h>
@@ -15,6 +16,8 @@ using namespace std;
 #include "NatNetClient.h"
 #include "motorDriver.h"
 #include "controller.h"
+
+
 
 
 #pragma warning( disable : 4996 )
@@ -375,15 +378,28 @@ void __cdecl DataHandler(sFrameOfMocapData* data, void* pUserData)
 		// printf("\tx\ty\tz\tqx\tqy\tqz\tqw\n");
 
 		// Uncomment this to print out the rigid body
-		printf("\t%3.2f\t%3.2f\t%3.2f\t%3.2f\t%3.2f\t%3.2f\t%3.2f\n",
+		/*printf("\t%3.2f\t%3.2f\t%3.2f\t%3.2f\t%3.2f\t%3.2f\t%3.2f\n",
 			data->RigidBodies[i].x,
 			data->RigidBodies[i].y,
 			data->RigidBodies[i].z,
 			data->RigidBodies[i].qx,
 			data->RigidBodies[i].qy,
 			data->RigidBodies[i].qz,
-			data->RigidBodies[i].qw);
-		
+			data->RigidBodies[i].qw);*/
+
+		double q0 = data->RigidBodies[i].qw;
+		double q1 = data->RigidBodies[i].qx;
+		double q2 = data->RigidBodies[i].qy;
+		double q3 = data->RigidBodies[i].qz;
+
+		double psi = atan2(-2 * (q1*q3 + q0*q2), pow(q0, 2) + pow(q1, 2) - pow(q2, 2) - pow(q3, 2));
+
+
+
+		printf("\t%3.2f\t%3.2f\t%3.2f\n",
+			data->RigidBodies[i].x,
+			data->RigidBodies[i].z,
+			psi);
 
 
 		/* printf("\tRigid body markers [Count=%d]\n", data->RigidBodies[i].nMarkers);
@@ -447,13 +463,13 @@ void __cdecl DataHandler(sFrameOfMocapData* data, void* pUserData)
 	xVel = (xPos - xPosOld) * fRate;
 	zVel = (zPos - zPosOld) * fRate;
 
-	printf("\t%3.2f\t%3.2f\t%3.2f\t%3.2f\n",
-		xPos, zPos, xVel, zVel);
+	/*printf("\t%3.2f\t%3.2f\t%3.2f\t%3.2f\n",
+		xPos, zPos, xVel, zVel);*/
 
 	//Call MirrorLaw Controller
-	mirrorLawController.setBallPosition(xPos, zPos);
-	mirrorLawController.setBallVelocity(xVel, zVel);
-	mirrorLawController.controlArm();
+	// mirrorLawController.setBallPosition(xPos, zPos);
+	// mirrorLawController.setBallVelocity(xVel, zVel);
+	// mirrorLawController.controlArm();
 
 	xPosOld = xPos;
 	zPosOld = zPos;
