@@ -9,8 +9,8 @@
 #define FLOATSIZE 4
 #define MESSAGESIZE FLOATSIZE+1
 #define MESSAGESIZE_WRITE MESSAGESIZE
-#define LOOPRATE 100
-#define LOOPCOUNTS 1
+#define LOOPRATE_MS 10
+#define LOOPCOUNTS_INT 100
 
 using std::string;
 using std::exception;
@@ -60,7 +60,7 @@ uint8_t endMessage = 0x0A;
 
 void serial_write_trigger(bool* readyToWrite)
 {
-	std::chrono::milliseconds duraWrite(LOOPRATE);
+	std::chrono::milliseconds duraWrite(LOOPRATE_MS);
 	while (true)
 	{
 		*readyToWrite = true;
@@ -95,7 +95,7 @@ void serial_write_trigger(bool* readyToWrite)
 int main()
 {
 	string port = "COM5";
-	unsigned long baud = 19200;
+	unsigned long baud = 115200;
 
 	// port, baudrate, timeout in milliseconds
 	serial::Serial my_serial(port, baud, serial::Timeout::simpleTimeout(1000));
@@ -146,7 +146,7 @@ int main()
 
 	//cout << "Timeout == 10ms, asking for exactly what was written." << endl;
 
-	std::chrono::milliseconds duraWrite(LOOPRATE);
+	std::chrono::milliseconds duraWrite(LOOPRATE_MS);
 	//my_serial.flushOutput();
 	
 	uint8_t message[MESSAGESIZE_WRITE];
@@ -183,11 +183,19 @@ int main()
 
 			writeCount += 1;
 			//modRes = writeCount % LOOPCOUNTS;
-			if (writeCount % LOOPCOUNTS == 0)
+			
+			if (writeCount % LOOPCOUNTS_INT == 0)
+			{
+				cout << "Writ Iter: " << writeCount << ", Len: " << bytes_wrote << ", Val: " << sentNumber.floatingPoint << " BIN: " << (int)sentNumber.binary[0] << " " << (int)sentNumber.binary[1] << " " << (int)sentNumber.binary[2] << " " << (int)sentNumber.binary[3] << endl;
+
+				//writeCountOld = writeCount;
+			}
+			if (writeCount % LOOPCOUNTS_INT == 1)
 			{
 				cout << "Read Iter: " << readCount << ", Len: " << bytes_read << ", Val: " << receivedNumber.floatingPoint << " BIN: " << (int)receivedNumber.binary[0] << " " << (int)receivedNumber.binary[1] << " " << (int)receivedNumber.binary[2] << " " << (int)receivedNumber.binary[3] << endl;
-				cout << "Writ Iter: " << writeCount << ", Len: " << bytes_wrote << ", Val: " << sentNumber.floatingPoint << " BIN: " << (int)sentNumber.binary[0] << " " << (int)sentNumber.binary[1] << " " << (int)sentNumber.binary[2] << " " << (int)sentNumber.binary[3] << endl;
-			//	writeCountOld = writeCount;
+				cout << "-----------------------------------------------------------------------------" << endl;
+
+				//	writeCountOld = writeCount;
 			}
 			//if (writeCount == writeCountOld + 1 )
 			//{
@@ -214,7 +222,7 @@ int main()
 				std::memcpy(receivedNumber.binary, incomingData, FLOATSIZE);
 				//std::memcpy(otherNumber.binary, &(incomingData[FLOATSIZE]), FLOATSIZE);
 				readCount++;
-				//if (readCount % LOOPCOUNTS == 0)
+				//if (readCount % LOOPCOUNTS_INT == 0)
 				//{
 				//	cout << "Read Iter: " << readCount << ", Len: " << bytes_read << ", Val: " << receivedNumber.floatingPoint << endl;
 				//}
