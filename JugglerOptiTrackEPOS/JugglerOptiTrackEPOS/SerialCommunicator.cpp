@@ -1,9 +1,10 @@
+#include "SerialCommunicator.h"
+
 #include <string>
 #include <iostream>
 #include <cstdio>
 #include <windows.h>
 //#include <math.h>
-#include "serial/serial.h"
 #include <thread>
 
 #define SHORTSIZE 2
@@ -30,27 +31,41 @@ Constructor
 SerialCommunicator::SerialCommunicator():
     port("COM5"),
     baud(115200),
-    serial::Serial my_serial(port, baud, serial::Timeout::simpleTimeout(1000))
+    my_serial(port, baud, serial::Timeout::simpleTimeout(1))
 {
     my_serial.setTimeout(serial::Timeout::max(), 1, 0, 1, 0);
-    my_serial.flush();
+    
+	my_serial.flush(); //flush the serial line
+
     //	Sleep(100);
     cout << "Is the serial port open?";
 	if (my_serial.isOpen())
 		cout << " Yes." << endl;
 	else
 		cout << " No." << endl;
+
+	// setup the message by setting last byte to be endmessage
+	message[MESSAGESIZE_WRITE - 1] = endMessage;
+
+	sentNumber.unsignedShort = 0;
+	//sentNumberLast = sentNumber;
+	writeCount = 0;
+	//int writeCountOld = writeCount;
+	bytes_read = 0;
+	readCount = 0;
+	durationReadThreadSleepUS = 500;
 }
 
 /*
 Destructor
 */
 
-SerialCommunicator::~SerialCommunicator():
+SerialCommunicator::~SerialCommunicator()
 {
 
 }
 
+/*
 void serial_write_trigger(bool* readyToWrite)
 {
 	std::chrono::milliseconds duraWrite(LOOPRATE_MS);
@@ -60,7 +75,7 @@ void serial_write_trigger(bool* readyToWrite)
 		std::this_thread::sleep_for(duraWrite);
 	}
 }
-
+*/
 
 //void serial_read_thread(serial::Serial* mySerialPtr)
 //{
@@ -84,26 +99,89 @@ void serial_write_trigger(bool* readyToWrite)
 //	}	
 //}
 
-uint16_t convertSpeedToMessage(float rpm)
+void SerialCommunicator::sendMotorRPM(float rpm)
 {
-	float rpmScaled = rpm / RPM_MAX;
-	return (uint16_t) (rpmScaled * (MESSAGE_MAX - POWER_OFF) + POWER_OFF);
+	sentNumber.unsignedShort = convertSpeedRPMToMessage(rpm); //36045; // / 30.0 * 2.0 * 3.141));
+
+	std::memcpy(message, sentNumber.binary, SHORTSIZE);
+	bytes_wrote = my_serial.write(message, MESSAGESIZE_WRITE);
+	
+	writeCount += 1;
+	/*
+	if (writeCount % LOOPCOUNTS_INT == 0)
+	{
+		//cout << "Writ Iter: " << writeCount << ", Len: " << bytes_wrote << ", Val: " << sentNumber.floatingPoint << " BIN: " << (int)sentNumber.binary[0] << " " << (int)sentNumber.binary[1] << " " << (int)sentNumber.binary[2] << " " << (int)sentNumber.binary[3] << endl;
+		printf("Delta: %d, lastSent: %d, received: %d \n", sentNumberLast.unsignedShort - receivedNumber.unsignedShort, sentNumberLast.unsignedShort, receivedNumber.unsignedShort);
+		//writeCountOld = writeCount;
+	}
+	if (writeCount % LOOPCOUNTS_INT == 1)
+	{
+		//cout << "Read Iter: " << readCount << ", Len: " << bytes_read << ", Val: " << receivedNumber.floatingPoint << " BIN: " << (int)receivedNumber.binary[0] << " " << (int)receivedNumber.binary[1] << " " << (int)receivedNumber.binary[2] << " " << (int)receivedNumber.binary[3] << endl;
+		//cout << "-----------------------------------------------------------------------------" << endl;
+
+		//	writeCountOld = writeCount;
+	}
+	sentNumberLast = sentNumber;
+	*/
 }
 
+float SerialCommunicator::readMotorRPM()
+{
+	mutexRec.lock();
+	uint16_t receivedVal = receivedNumber.unsignedShort;
+	mutexRec.unlock();
 
+	return this->convertMessageToSpeedRPM(receivedVal);
 
+}
 
-int main()
+void SerialCommunicator::readThread()
+{
+	while (true)
+	{
+		whatIsAvailable = my_serial.available();
+		//cout << "Bytes Available: " << whatIsAvailable << end;l
+		if (whatIsAvailable > MESSAGESIZE - 1)
+		{
+			if (whatIsAvailable > MESSAGESIZE)
+			{
+				cout << "Bytes Available: " << whatIsAvailable << endl;
+			}
+			bytes_read = my_serial.read(incomingData, whatIsAvailable);
+			//cout << "Bytes read: " << length << endl;
+			if (bytes_read == MESSAGESIZE && incomingData[MESSAGESIZE - 1] == endMessage)
+			{
+				// parse the data to the shared float
+				mutexRec.lock();
+				std::memcpy(receivedNumber.binary, incomingData, SHORTSIZE);
+				mutexRec.unlock();
+
+				//std::memcpy(otherNumber.binary, &(incomingData[FLOATSIZE]), FLOATSIZE);
+				readCount++;
+				//if (readCount % LOOPCOUNTS_INT == 0)
+				//{
+				//	cout << "Read Iter: " << readCount << ", Len: " << bytes_read << ", Val: " << receivedNumber.floatingPoint << endl;
+				//}
+			}
+		}
+		std::this_thread::sleep_for(durationReadThreadSleepUS);
+		std::this_thread::yield();
+	}
+}
+
+/*
+
+int SerialCommunicator::main()
 {
 	
-	bool readyToWrite;
+	//bool readyToWrite;
 
-	std::thread threadWrite(serial_write_trigger, &readyToWrite);
-	if (threadWrite.joinable())
-	{
-		std::cout << "Detaching Thread " << std::endl;
-		threadWrite.detach();
-	}
+	//std::thread threadWrite(serial_write_trigger, &readyToWrite);
+	//if (threadWrite.joinable())
+	//{
+	//	std::cout << "Detaching Thread " << std::endl;
+	//	threadWrite.detach();
+	//}
 	// Test the timeout, there should be 1 second between prints
 	//cout << "Timeout == 1000ms, asking for exactly what was written." << endl;
 
@@ -129,9 +207,9 @@ int main()
 		
 		if (readyToWrite)
 		{
-			/*size_t bytes_wrote = my_serial.write(test_string);
+			// size_t bytes_wrote = my_serial.write(test_string);
 
-			string result = my_serial.read(test_string.length());*/
+			// string result = my_serial.read(test_string.length());
 
 			sentNumber.unsignedShort = convertSpeedToMessage(1000); //36045; // / 30.0 * 2.0 * 3.141));
 			
@@ -144,29 +222,7 @@ int main()
 			//for (int i = 1; i < FLOATSIZE; i++)
 				//receivedNumber.binary[i] = incomingData[i];
 
-			writeCount += 1;
-			//modRes = writeCount % LOOPCOUNTS;
 			
-			if (writeCount % LOOPCOUNTS_INT == 0)
-			{
-				//cout << "Writ Iter: " << writeCount << ", Len: " << bytes_wrote << ", Val: " << sentNumber.floatingPoint << " BIN: " << (int)sentNumber.binary[0] << " " << (int)sentNumber.binary[1] << " " << (int)sentNumber.binary[2] << " " << (int)sentNumber.binary[3] << endl;
-				printf("Delta: %d, lastSent: %d, received: %d \n", sentNumberLast.unsignedShort - receivedNumber.unsignedShort,  sentNumberLast.unsignedShort, receivedNumber.unsignedShort);
-
-				//writeCountOld = writeCount;
-			}
-			if (writeCount % LOOPCOUNTS_INT == 1)
-			{
-				//cout << "Read Iter: " << readCount << ", Len: " << bytes_read << ", Val: " << receivedNumber.floatingPoint << " BIN: " << (int)receivedNumber.binary[0] << " " << (int)receivedNumber.binary[1] << " " << (int)receivedNumber.binary[2] << " " << (int)receivedNumber.binary[3] << endl;
-				//cout << "-----------------------------------------------------------------------------" << endl;
-
-				//	writeCountOld = writeCount;
-			}
-			
-			sentNumberLast = sentNumber;
-			//if (writeCount == writeCountOld + 1 )
-			//{
-			//}
-			//std::this_thread::sleep_for(duraWrite);
 			readyToWrite = false;
 		}
 		
@@ -199,6 +255,21 @@ int main()
 	}
 
 	return 0;
+}
+*/
+
+
+uint16_t SerialCommunicator::convertSpeedRPMToMessage(float rpm)
+{
+	float rpmScaled = rpm / RPM_MAX;
+	return (uint16_t)(rpmScaled * (MESSAGE_MAX - POWER_OFF) + POWER_OFF);
+}
+
+float SerialCommunicator::convertMessageToSpeedRPM(uint16_t message)
+{
+	float msgShifted = ((float)message - POWER_OFF);
+	float rpmNormalized = msgShifted / (MESSAGE_MAX - POWER_OFF);
+	return (rpmNormalized * RPM_MAX);
 }
 
 void SerialCommunicator::enumerate_ports()

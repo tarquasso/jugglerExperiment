@@ -45,6 +45,9 @@
     <ClInclude Include="..\include\serial\impl\win.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SerialCommunicator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="SoftJuggler.cpp">
@@ -63,6 +66,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\impl\list_ports\list_ports_win.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SerialCommunicator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
