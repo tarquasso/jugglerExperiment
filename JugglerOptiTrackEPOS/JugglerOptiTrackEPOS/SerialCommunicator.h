@@ -1,8 +1,16 @@
 #ifndef SERIAL_COMMUNICATOR_H
 #define SERIAL_COMMUNICATOR_H
 
+#include <string>
 #include "serial/serial.h"
-#include <mutex>
+
+using std::string;
+
+//#include <mutex>
+
+#define SHORTSIZE 2
+#define MESSAGESIZE SHORTSIZE+1
+#define MESSAGESIZE_WRITE MESSAGESIZE
 
 typedef union {
     uint16_t unsignedShort;
@@ -25,10 +33,10 @@ class SerialCommunicator
 	static float convertMessageToSpeedRPM(uint16_t message);
 
 protected:
-	void readThread();
+	//void readThread();
 
   private:
-    string port;
+    std::string port;
     unsigned long baud;
     // port, baudrate, timeout in milliseconds
     serial::Serial my_serial;
@@ -43,17 +51,15 @@ protected:
 	//my_serial.flushOutput();
 
 	uint8_t message[MESSAGESIZE_WRITE];
-	
-	sentNumber.unsignedShort;
 	binaryUShort sentNumberLast;
-	int writeCount;
+	uint64_t writeCount;
 	size_t bytes_wrote;
 	size_t whatIsAvailable;
 	size_t bytes_read;
-	unsigned int readCount;
-	mutex mutexRec;
-	std::chrono::milliseconds durationReadThreadSleep(LOOPRATE_MS);
+	uint64_t readCount;
+	//mutex mutexRec;
+	//std::chrono::microseconds durationReadThreadSleepUS;
 
-}
+};
 
 #endif

@@ -1,24 +1,21 @@
 #include "SerialCommunicator.h"
 
-#include <string>
 #include <iostream>
-#include <cstdio>
-#include <windows.h>
-//#include <math.h>
-#include <thread>
 
-#define SHORTSIZE 2
-#define MESSAGESIZE SHORTSIZE+1
-#define MESSAGESIZE_WRITE MESSAGESIZE
+//#include <cstdio>
+//#include <windows.h>
+//#include <math.h>
+//#include <thread>
+
 #define LOOPRATE_MS 2
 #define LOOPCOUNTS_INT 500
-#define POWER_OFF 32768.0
+#define POWER_OFF 32768.0f
 #define BACKWARD_MAX 0
 #define FORWARD_MAX USHRT_MAX
-#define MESSAGE_MAX 65535.0
-#define RPM_MAX 10000.0
-using std::string;
-using std::exception;
+#define MESSAGE_MAX 65535.0f
+#define RPM_MAX 10000.0f
+//using std::string;
+//using std::exception;
 using std::cout;
 using std::cerr;
 using std::endl;
@@ -33,7 +30,7 @@ SerialCommunicator::SerialCommunicator():
     baud(115200),
     my_serial(port, baud, serial::Timeout::simpleTimeout(1))
 {
-    my_serial.setTimeout(serial::Timeout::max(), 1, 0, 1, 0);
+    //my_serial.setTimeout(serial::Timeout::max(), 1, 0, 1, 0);
     
 	my_serial.flush(); //flush the serial line
 
@@ -53,7 +50,7 @@ SerialCommunicator::SerialCommunicator():
 	//int writeCountOld = writeCount;
 	bytes_read = 0;
 	readCount = 0;
-	durationReadThreadSleepUS = 500;
+	//durationReadThreadSleepUS = 500;
 }
 
 /*
@@ -127,50 +124,45 @@ void SerialCommunicator::sendMotorRPM(float rpm)
 
 float SerialCommunicator::readMotorRPM()
 {
-	mutexRec.lock();
-	uint16_t receivedVal = receivedNumber.unsignedShort;
-	mutexRec.unlock();
+	//mutexRec.lock();
+	//uint16_t receivedVal = receivedNumber.unsignedShort;
+	//mutexRec.unlock();
 
-	return this->convertMessageToSpeedRPM(receivedVal);
-
-}
-
-void SerialCommunicator::readThread()
-{
-	while (true)
+	whatIsAvailable = my_serial.available();
+	
+	//cout << "Bytes Available: " << whatIsAvailable << end;l
+	if (whatIsAvailable > MESSAGESIZE - 1)
 	{
-		whatIsAvailable = my_serial.available();
-		//cout << "Bytes Available: " << whatIsAvailable << end;l
-		if (whatIsAvailable > MESSAGESIZE - 1)
+		if (whatIsAvailable > MESSAGESIZE)
 		{
-			if (whatIsAvailable > MESSAGESIZE)
-			{
-				cout << "Bytes Available: " << whatIsAvailable << endl;
-			}
-			bytes_read = my_serial.read(incomingData, whatIsAvailable);
-			//cout << "Bytes read: " << length << endl;
-			if (bytes_read == MESSAGESIZE && incomingData[MESSAGESIZE - 1] == endMessage)
-			{
-				// parse the data to the shared float
-				mutexRec.lock();
-				std::memcpy(receivedNumber.binary, incomingData, SHORTSIZE);
-				mutexRec.unlock();
-
-				//std::memcpy(otherNumber.binary, &(incomingData[FLOATSIZE]), FLOATSIZE);
-				readCount++;
-				//if (readCount % LOOPCOUNTS_INT == 0)
-				//{
-				//	cout << "Read Iter: " << readCount << ", Len: " << bytes_read << ", Val: " << receivedNumber.floatingPoint << endl;
-				//}
-			}
+			cout << "Bytes Available: " << whatIsAvailable << endl;
 		}
-		std::this_thread::sleep_for(durationReadThreadSleepUS);
-		std::this_thread::yield();
+		bytes_read = my_serial.read(incomingData, whatIsAvailable);
+		//cout << "Bytes read: " << length << endl;
+		//if (bytes_read == MESSAGESIZE && incomingData[MESSAGESIZE - 1] == endMessage)
+		if (incomingData[bytes_read - 1] == endMessage)
+		{
+			// parse the data to the shared float
+			//mutexRec.lock();
+			std::memcpy(receivedNumber.binary, &(incomingData[bytes_read - 1 - SHORTSIZE]), SHORTSIZE);
+			//std::memcpy(receivedNumber.binary, incomingData), SHORTSIZE);
+
+			//mutexRec.unlock();
+
+			//std::memcpy(otherNumber.binary, &(incomingData[FLOATSIZE]), FLOATSIZE);
+			readCount++;
+			//if (readCount % LOOPCOUNTS_INT == 0)
+			//{
+			//	cout << "Read Iter: " << readCount << ", Len: " << bytes_read << ", Val: " << receivedNumber.floatingPoint << endl;
+			//}
+		}
 	}
+
+	// return what is there already
+	return this->convertMessageToSpeedRPM(receivedNumber.unsignedShort);
 }
 
 /*
-
 int SerialCommunicator::main()
 {
 	
