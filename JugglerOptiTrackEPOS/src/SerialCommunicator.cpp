@@ -9,7 +9,7 @@
 
 //#include <thread>
 
-#define M_PI 3.14159265358979323846
+#define M_PI 3.14159265358979323846f
 
 #define LOOPRATE_MS 2
 #define LOOPCOUNTS_INT 500
@@ -117,11 +117,12 @@ void SerialCommunicator::getNewMessage()
 {
 	whatIsAvailable = my_serial.available();
 	//cout << "Bytes Available: " << whatIsAvailable << end;l
+	if (whatIsAvailable < MESSAGESIZE)
+		printf("too short message - bytes Available: %d\n", whatIsAvailable);
 
 	if (whatIsAvailable > MESSAGESIZE - 1)
 	{
-		if (whatIsAvailable > MESSAGESIZE)
-			cout << "Bytes Available: " << whatIsAvailable << endl;
+		
 
 		bytes_read = my_serial.read(incomingData, whatIsAvailable);
 		//cout << "Bytes read: " << length << endl;
@@ -134,6 +135,11 @@ void SerialCommunicator::getNewMessage()
 			readCount++;
 			//if (readCount % LOOPCOUNTS_INT == 0)
 			//	cout << "Read Iter: " << readCount << ", Len: " << bytes_read << ", Val: " << receivedNumber.floatingPoint << endl;
+			if (whatIsAvailable > MESSAGESIZE)
+				printf("long message (multiple) - bytes Available: %d\n", whatIsAvailable);
+		}
+		else {
+			printf("long message (wrong length) - bytes Available: %d\n", whatIsAvailable);
 		}
 	}
 }
@@ -161,7 +167,7 @@ float SerialCommunicator::convertMessageToRpm(uint16_t message)
 float SerialCommunicator::convertMessageToRadS(uint16_t message)
 {
 	float rpm = convertMessageToRpm(message);
-	return rpm * (2 * M_PI) / 60;
+	return rpm * (2.0f * M_PI) / 60.0f;
 }
 
 void SerialCommunicator::enumerate_ports()

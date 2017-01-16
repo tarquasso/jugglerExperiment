@@ -187,7 +187,7 @@ void Controller::controlArm()
 																		//motor.getMovementState(&pTargetReached, &pErrorCode);
 	//motorObj.setDesiredMotorPosition(TargetPositionRad);
 	//serialComm.sendMotorRpm(rpm);
-	serialComm.sendMotorRadPerSec(TargetPositionRad);
+	serialComm.sendMotorRadPerSec((float) TargetPositionRad);
 
 	//std::cout << "Exiting commandMotor(double, double, double, double)\n";
 	//	}

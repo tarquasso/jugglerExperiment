@@ -149,6 +149,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\include\SerialCommunicator.h" />
     <ClInclude Include="..\include\serial\impl\win.h" />
     <ClInclude Include="..\include\serial\serial.h" />
     <ClInclude Include="..\include\serial\v8stdint.h" />
@@ -158,16 +159,15 @@
     <ClInclude Include="NatNetClient.h" />
     <ClInclude Include="NatNetTypes.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="SerialCommunicator.h" />
     <ClInclude Include="StdAfx.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\impl\list_ports\list_ports_win.cc" />
     <ClCompile Include="..\src\impl\win.cc" />
     <ClCompile Include="..\src\serial.cc" />
+    <ClCompile Include="..\src\SerialCommunicator.cpp" />
     <ClCompile Include="Controller.cpp" />
     <ClCompile Include="motorDriver.cpp" />
-    <ClCompile Include="SerialCommunicator.cpp" />
     <ClCompile Include="SoftJuggler.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
