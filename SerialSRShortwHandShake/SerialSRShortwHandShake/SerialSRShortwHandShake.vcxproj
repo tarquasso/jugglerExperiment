@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{54984E7A-680F-48DE-BC5E-FED5795CCC14}</ProjectGuid>
+    <ProjectGuid>{1F4FE226-BF02-4592-9328-8C4972AA666D}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>SerialSRwHandShake</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>

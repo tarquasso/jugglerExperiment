@@ -11,7 +11,11 @@
 #define MESSAGESIZE_WRITE MESSAGESIZE
 #define LOOPRATE_MS 2
 #define LOOPCOUNTS_INT 500
-
+#define POWER_OFF 32768.0
+#define BACKWARD_MAX 0
+#define FORWARD_MAX USHRT_MAX
+#define MESSAGE_MAX 65535.0
+#define RPM_MAX 10000.0
 using std::string;
 using std::exception;
 using std::cout;
@@ -92,6 +96,12 @@ void serial_write_trigger(bool* readyToWrite)
 //	}	
 //}
 
+uint16_t convertSpeedToMessage(float rpm)
+{
+	float rpmScaled = rpm / RPM_MAX;
+	return (uint16_t) (rpmScaled * (MESSAGE_MAX - POWER_OFF) + POWER_OFF);
+}
+
 int main()
 {
 	string port = "COM5";
@@ -161,7 +171,7 @@ int main()
 	size_t bytes_read = 0;
 	unsigned int readCount;
 	readCount = 0;
-
+	 
 	while (writeCount < 1000000) {
 		
 		if (readyToWrite)
@@ -170,7 +180,7 @@ int main()
 
 			string result = my_serial.read(test_string.length());*/
 
-			sentNumber.unsignedShort = (uint16_t) writeCount; // / 30.0 * 2.0 * 3.141));
+			sentNumber.unsignedShort = convertSpeedToMessage(1000); //36045; // / 30.0 * 2.0 * 3.141));
 			
 			std::memcpy(message, sentNumber.binary, SHORTSIZE);
 			bytes_wrote = my_serial.write(message, MESSAGESIZE_WRITE);
@@ -209,7 +219,7 @@ int main()
 		
 		whatIsAvailable = my_serial.available();
 
-		//cout << "Bytes Available: " << whatIsAvailable << endl;
+		//cout << "Bytes Available: " << whatIsAvailable << end;l
 
 		if (whatIsAvailable > MESSAGESIZE - 1)
 		{
