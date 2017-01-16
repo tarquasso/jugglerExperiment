@@ -14,6 +14,7 @@
 #include <windows.h>
 
 #include "serial/serial.h"
+#include "SerialCommunicator.h"
 
 using std::string;
 using std::exception;
@@ -79,6 +80,7 @@ private:
 public:
 
 	MotorDriver motorObj;
+	SerialCommunicator serialComm;
 
 public:
 	Controller();

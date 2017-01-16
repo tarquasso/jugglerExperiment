@@ -8,9 +8,11 @@ using std::string;
 
 //#include <mutex>
 
+#define RPM_MAX 10000.0f
 #define SHORTSIZE 2
 #define MESSAGESIZE SHORTSIZE+1
 #define MESSAGESIZE_WRITE MESSAGESIZE
+
 
 typedef union {
     uint16_t unsignedShort;
@@ -23,17 +25,24 @@ class SerialCommunicator
     SerialCommunicator();
     ~SerialCommunicator();
 	
-	void sendMotorRPM(float rpm);
-	float readMotorRPM();
+	void sendMotorRadPerSec(float rad_s);
+	void sendMotorRpm(float rpm);
+	float readMotorRpm();
+	float readMotorRadPerSec();
 
     void enumerate_ports();
     void print_usage();
 
-	static uint16_t convertSpeedRPMToMessage(float rpm);
-	static float convertMessageToSpeedRPM(uint16_t message);
+	static uint16_t convertRadSToMessage(float rad_per_second);
+	static uint16_t convertRpmToMessage(float rpm);
+	static float convertMessageToRpm(uint16_t message);
+	static float convertMessageToRadS(uint16_t message);
+
 
 protected:
 	//void readThread();
+	void sendMessage(uint16_t message);
+	void getNewMessage();
 
   private:
     std::string port;
@@ -50,7 +59,7 @@ protected:
 	//std::chrono::milliseconds duraWrite(LOOPRATE_MS);
 	//my_serial.flushOutput();
 
-	uint8_t message[MESSAGESIZE_WRITE];
+	uint8_t bytesToBeSent[MESSAGESIZE_WRITE];
 	binaryUShort sentNumberLast;
 	uint64_t writeCount;
 	size_t bytes_wrote;

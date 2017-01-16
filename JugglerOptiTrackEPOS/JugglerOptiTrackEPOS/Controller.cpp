@@ -41,6 +41,7 @@ int motorSetPosition = 0;
 
 
 std::cout << "Start Motor Thread" << std::endl;
+/*
 // ToDo: get a handle on that thread
 std::thread threadObj(&MotorDriver::motor_control_thread_function, &this->motorObj, std::ref(motorSetPosition));
 if (threadObj.joinable())
@@ -50,6 +51,7 @@ if (threadObj.joinable())
 	std::cout << "Detaching Thread " << std::endl;
 	threadObj.detach();
 }
+*/
 
 //// port, baudrate, timeout in milliseconds
 //my_serial.setBaudrate(baud);
@@ -159,8 +161,13 @@ double Controller::computeDesiredPaddlePosition()
 
 void Controller::controlArm()
 {
-	if(m_initialized)
+	if (!m_initialized)
 	{
+		printf("please init controller!");
+		return;
+	}
+
+	serialComm.readMotorRadPerSec();
 	/**********************************************/
 	/* Insert motor control commands from here on */
 
@@ -178,15 +185,13 @@ void Controller::controlArm()
 																		//motor.moveToPositionRad(TargetPositionRad, Absolute, Immediately);
 
 																		//motor.getMovementState(&pTargetReached, &pErrorCode);
-
-	motorObj.setDesiredMotorPosition(TargetPositionRad);
+	//motorObj.setDesiredMotorPosition(TargetPositionRad);
+	//serialComm.sendMotorRpm(rpm);
+	serialComm.sendMotorRadPerSec(TargetPositionRad);
 
 	//std::cout << "Exiting commandMotor(double, double, double, double)\n";
 	//	}
 	/* End of motor commands */
 	/*************************/
-	}
-	else {
-		printf("please init controller!");
-	}
+
 }
