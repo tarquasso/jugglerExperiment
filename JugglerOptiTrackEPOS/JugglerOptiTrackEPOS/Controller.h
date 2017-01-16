@@ -2,7 +2,7 @@
 
 #define PI 3.14159265358979
 #define FLOATSIZE 4
-
+#define LOOP_PERIOD_MS 3
 
 #include <math.h>
 #include <Eigen/Dense>
@@ -65,18 +65,21 @@ private:
 	double kappa01;
 
 
-	binaryFloat sentNumber;
-	binaryFloat receivedNumber;
-	uint8_t incomingData[FLOATSIZE];			// don't forget to pre-allocate memory
+	double m_currentPaddlePositionRad;
+	double m_desiredPaddlePositionRad;
+	double m_desiredPaddleVelocityRad;
 
-	string port = "COM5";
-	unsigned long baud = 9600;
-	int timeOut = 1;
+	//control thread
+	float m_motorVelMeasRadS = 0;
+	
+	std::mutex m_mutexPaddlePos, m_mutexBallPos, m_mutexBallVel;
 
-	serial::Serial my_serial;
+	double m_positionGain = 1;
 
-	Vector2d puckPos;
-
+	// DONT TOUCH THOSE OTHER THAN BY GET SET FUNCTIONS
+	Vector2d m_ballPosOptiTrack;
+	Vector2d m_ballVelOptiTrack;
+	double m_paddlePositionOptiTrack = 0.0;
 public:
 
 	MotorDriver motorObj;
@@ -89,7 +92,8 @@ public:
 
 	void init();
 
-	double computeDesiredPaddlePosition();
+	double getPaddlePosition();
+	void setPaddlePosition(double);
 
 	Vector2d getBallPosition();
 	void setBallPosition(double, double);
@@ -97,6 +101,9 @@ public:
 	Vector2d getBallVelocity();
 	void setBallVelocity(double, double);
 
+
+	
+protected:
 	double getReferenceEnergy();
 	void setReferenceEnergy(double referenceEnergy);
 
@@ -106,7 +113,11 @@ public:
 	void computeJacobianInverse();
 
 	double computeVerticalEnergy();
-	
-	void controlArm();
+
+	double computeDesiredPaddlePosition();
+	double computeDesiredPaddleVelocity();
+
+	void controlArmThread();
+
 
 };

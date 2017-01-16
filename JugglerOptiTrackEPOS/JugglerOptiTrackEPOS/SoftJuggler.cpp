@@ -26,8 +26,6 @@ void __cdecl DataHandler(sFrameOfMocapData* data, void* pUserData);		// receives
 void __cdecl MessageHandler(int msgType, char* msg);		            // receives NatNet error mesages
 void resetClient();
 int CreateClient(int iConnectionType);
-void commandMotor(double x, double z, double xp, double zp);
-
 
 void my_sleep(unsigned long milliseconds) {
 	Sleep(milliseconds); // 100 ms
@@ -97,6 +95,11 @@ double zPosOld = 0.0;
 double xVel = 0.0;
 double zVel = 0.0;
 
+double q0 = 1;
+double q1 = 0;
+double q2 = 0;
+double q3 = 0;
+double psi = 0;
 
 
 // int _tmain(int argc, _TCHAR* argv[])
@@ -387,6 +390,7 @@ void __cdecl DataHandler(sFrameOfMocapData* data, void* pUserData)
 			data->RigidBodies[i].qz,
 			data->RigidBodies[i].qw);*/
 
+		/*
 		double q0 = data->RigidBodies[i].qw;
 		double q1 = data->RigidBodies[i].qx;
 		double q2 = data->RigidBodies[i].qy;
@@ -400,7 +404,7 @@ void __cdecl DataHandler(sFrameOfMocapData* data, void* pUserData)
 			data->RigidBodies[i].x,
 			data->RigidBodies[i].z,
 			psi);
-
+		*/
 
 		/* printf("\tRigid body markers [Count=%d]\n", data->RigidBodies[i].nMarkers);
 		for(int iMarker=0; iMarker < data->RigidBodies[i].nMarkers; iMarker++)
@@ -457,19 +461,26 @@ void __cdecl DataHandler(sFrameOfMocapData* data, void* pUserData)
 	// xPos /= data->nLabeledMarkers;
 	// zPos /= data->nLabeledMarkers;
 
+	// Puck
 	xPos = data->RigidBodies[0].x;
 	zPos = data->RigidBodies[0].z;
-
+	
 	xVel = (xPos - xPosOld) * fRate;
 	zVel = (zPos - zPosOld) * fRate;
 
 	/*printf("\t%3.2f\t%3.2f\t%3.2f\t%3.2f\n",
 		xPos, zPos, xVel, zVel);*/
 
-	//Call MirrorLaw Controller
-	// mirrorLawController.setBallPosition(xPos, zPos);
-	// mirrorLawController.setBallVelocity(xVel, zVel);
-	// mirrorLawController.controlArm();
+	// ToDO: make this unique by rigidbody name
+	q0 = data->RigidBodies[1].qw;
+	q1 = data->RigidBodies[1].qx;
+	q2 = data->RigidBodies[1].qy;
+	q3 = data->RigidBodies[1].qz;
+	psi = atan2(-2 * (q1*q3 + q0*q2), pow(q0, 2) + pow(q1, 2) - pow(q2, 2) - pow(q3, 2));
+
+	mirrorLawController.setPaddlePosition(psi);
+	mirrorLawController.setBallPosition(xPos, zPos);
+	mirrorLawController.setBallVelocity(xVel, zVel);
 
 	xPosOld = xPos;
 	zPosOld = zPos;

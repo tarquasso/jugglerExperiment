@@ -2,7 +2,8 @@
 #include <iostream>
 
 Controller::Controller():
-	my_serial(port, baud, serial::Timeout::simpleTimeout(timeOut)),
+	m_ballPosOptiTrack(0,0),
+	m_ballVelOptiTrack(0, 0),
 	m_initialized(false)
 {
 	sigmaRef = 0.0;
@@ -39,56 +40,59 @@ std::cout << "Controller Init, Thread :: ID = " << std::this_thread::get_id() <<
 int motorSetPosition = 0;
 //std::cout << "In Main Thread : Before Thread Start motorSetPosition = " << motorSetPosition << std::endl;
 
-
 std::cout << "Start Motor Thread" << std::endl;
-/*
+
 // ToDo: get a handle on that thread
-std::thread threadObj(&MotorDriver::motor_control_thread_function, &this->motorObj, std::ref(motorSetPosition));
+std::thread threadObj(&Controller::controlArmThread, this);
 if (threadObj.joinable())
 {
 	//threadObj.join();
 	//std::cout << "Joined Thread " << std::endl;
-	std::cout << "Detaching Thread " << std::endl;
+	std::cout << "Detaching Control Arm Thread " << std::endl;
 	threadObj.detach();
 }
-*/
-
-//// port, baudrate, timeout in milliseconds
-//my_serial.setBaudrate(baud);
-//my_serial.setPort(port);
-//my_serial.setTimeout(serial::Timeout::max(), timeOut, 0, timeOut, 0);
-
-//cout << "Is the serial port open?";
-//if (my_serial.isOpen())
-//cout << " Yes." << endl;
-//else
-//cout << " No." << endl;
-
-//std::cout << "In Main Thread : After Thread Joins motorSetPosition = " << motorSetPosition << std::endl;
 
 m_initialized = true;
 
 }
-Vector2d Controller::getBallPosition()
+
+// OPTITRACK
+double Controller::getPaddlePosition()
 {
-	return Vector2d(x, z);
+	std::lock_guard<std::mutex> guard(m_mutexPaddlePos);
+	return m_paddlePositionOptiTrack;
 }
 
-void Controller::setBallPosition(double a, double b)
+void Controller::setPaddlePosition(double paddlePos)
 {
-	x = a;
-	z = b;
+	std::lock_guard<std::mutex> guard(m_mutexPaddlePos);
+	m_paddlePositionOptiTrack = paddlePos;
+}
+
+Vector2d Controller::getBallPosition()
+{
+	std::lock_guard<std::mutex> guard(m_mutexBallPos);
+	return m_ballPosOptiTrack;
+}
+
+void Controller::setBallPosition(double x, double z)
+{
+	std::lock_guard<std::mutex> guard(m_mutexBallPos);
+	m_ballPosOptiTrack(0) = x;
+	m_ballPosOptiTrack(1) = z;
 }
 
 Vector2d Controller::getBallVelocity()
 {
-	return Vector2d(xp, zp);
+	std::lock_guard<std::mutex> guard(m_mutexBallVel);
+	return m_ballVelOptiTrack;
 }
 
-void Controller::setBallVelocity(double a, double b)
+void Controller::setBallVelocity(double xp, double zp)
 {
-	xp = a;
-	zp = b;
+	std::lock_guard<std::mutex> guard(m_mutexBallVel);
+	m_ballVelOptiTrack(0) = xp;
+	m_ballVelOptiTrack(1) = zp;
 }
 
 
@@ -159,39 +163,40 @@ double Controller::computeDesiredPaddlePosition()
 }
 
 
-void Controller::controlArm()
+
+double Controller::computeDesiredPaddleVelocity()
 {
+	return  -m_positionGain * (m_currentPaddlePositionRad - m_desiredPaddlePositionRad);
+}
+
+void Controller::controlArmThread()
+{
+	// Ensure it was initialized!
 	if (!m_initialized)
 	{
-		printf("please init controller!");
+		printf("please init() controller!");
 		return;
 	}
 
-	serialComm.readMotorRadPerSec();
-	/**********************************************/
-	/* Insert motor control commands from here on */
+	// Velocity of Motor from Mbed
+	m_motorVelMeasRadS = serialComm.readMotorRadPerSec();
 
-	// Get the Current Position
-	//motor.getPosition(pPosition);		// Read Motor Position
+	//Position of Paddle as set by OptiTrack
+	m_currentPaddlePositionRad = this->getPaddlePosition();
 
-	double TargetPositionRad = this->computeDesiredPaddlePosition();		// Need conversion to ticks or something here.
+	//Position and Velocity of Puck
+	Vector2d ballPos = this->getBallPosition();
+	x = ballPos(0);
+	z = ballPos(1);
+	Vector2d ballVel = this->getBallVelocity();
+	xp = ballVel(0);
+	zp = ballVel(1);
 
-																		// std::cout << "I'm commanding " << TargetPositionRad << "[rad] to the motor.\n";
+	m_desiredPaddlePositionRad = this->computeDesiredPaddlePosition();		
+	
+	m_desiredPaddleVelocityRad = this->computeDesiredPaddleVelocity();
 
-																		//	while (!pTargetReached)
-																		//	{
-																		//motor.getPositionRad(&pPositionRad);		// Read Motor Position
-
-																		//motor.moveToPositionRad(TargetPositionRad, Absolute, Immediately);
-
-																		//motor.getMovementState(&pTargetReached, &pErrorCode);
-	//motorObj.setDesiredMotorPosition(TargetPositionRad);
-	//serialComm.sendMotorRpm(rpm);
-	serialComm.sendMotorRadPerSec((float) TargetPositionRad);
-
-	//std::cout << "Exiting commandMotor(double, double, double, double)\n";
-	//	}
-	/* End of motor commands */
-	/*************************/
+	this->serialComm.sendMotorRadPerSec((float)m_desiredPaddleVelocityRad);
+	std::this_thread::sleep_for(std::chrono::milliseconds(LOOP_PERIOD_MS));
 
 }
