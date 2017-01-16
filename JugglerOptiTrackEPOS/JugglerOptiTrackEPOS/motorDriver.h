@@ -4,8 +4,9 @@
 #define PI 3.14159265358979
 
 #include "Definitions.h"
+#include <mutex>
 
-class motorDriver
+class MotorDriver
 {
 private:
 	HANDLE keyHandle;
@@ -22,17 +23,33 @@ private:
 
 	__int8 m_bMode = -1;
 	long m_lStartPosition = 0;
+	double m_desiredMotorPositionRad;
 
-public:
+	std::mutex mutexDesired;
+
 	//char* strDeviceName = "EPOS4";
 	//char* strProtocolStackName = "CANopen";
 	//char* strInterfaceName = "USB";
 	//char* strPortName = "USB0";
 
-	motorDriver();
-	~motorDriver();
+public:
+	
+	MotorDriver();
+	~MotorDriver();
+
+	void initMotor();
+
+	void motor_control_thread_function(int const & motorSetPosition);
 
 	long getStartPosition();
+	
+	void setDesiredMotorPosition(double const & desiredMotorPositionRad);
+
+	void getDesiredMotorPosition(double* desiredMotorPositionRad);
+
+
+protected:
+	// protected methods
 	void setStartPosition(long startPosition);
 
 	BOOL getPositionProfile(DWORD* pProfileVelocity, DWORD* pProfileAcceleration,
@@ -41,15 +58,15 @@ public:
 		DWORD ProfileDeceleration, DWORD* pErrorCode);
 
 	BOOL getPosition(long* pPosition);
-	BOOL getPositionRad(float* pPositionRad);
-	BOOL moveToPosition(long TargetPosition, BOOL Absolute, BOOL Immediately);
-	BOOL moveToPositionRad(float TargetPositionRad, BOOL Absolute, BOOL Immediately);
+	BOOL getPositionRad(double* pPositionRad);
+	BOOL moveToPosition(long moveToPosition, BOOL Absolute, BOOL Immediately);
+	BOOL moveToPositionRad(double moveToPositionRad, BOOL Absolute, BOOL Immediately);
 
 	BOOL getMovementState(BOOL* pTargetReached, DWORD* pErrorCode);
 
 	BOOL getProtocolSettings(DWORD* pBaudrate, DWORD* pTimeOut, DWORD* pErrorCode);
 
-	long rad2qc(float angleInRadians);
-	float qc2rad(long angleInQuadratureCount);
+	long rad2qc(double angleInRadians);
+	double qc2rad(long angleInQuadratureCount);
 
 };

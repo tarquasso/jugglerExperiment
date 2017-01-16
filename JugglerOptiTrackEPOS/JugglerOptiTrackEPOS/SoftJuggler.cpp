@@ -1,33 +1,5 @@
-//=============================================================================
-// Copyright � 2014 NaturalPoint, Inc. All Rights Reserved.
-//
-// This software is provided by the copyright holders and contributors "as is" and
-// any express or implied warranties, including, but not limited to, the implied
-// warranties of merchantability and fitness for a particular purpose are disclaimed.
-// In no event shall NaturalPoint, Inc. or contributors be liable for any direct,
-// indirect, incidental, special, exemplary, or consequential damages
-// (including, but not limited to, procurement of substitute goods or services;
-// loss of use, data, or profits; or business interruption) however caused
-// and on any theory of liability, whether in contract, strict liability,
-// or tort (including negligence or otherwise) arising in any way out of
-// the use of this software, even if advised of the possibility of such damage.
-//=============================================================================
-
-
 /*
-
 SampleClient.cpp
-
-This program connects to a NatNet server, receives a data stream, and writes that data stream
-to an ascii file.  The purpose is to illustrate using the NatNetClient class.
-
-Usage [optional]:
-
-	SampleClient [ServerIP] [LocalIP] [OutputFilename]
-
-	[ServerIP]			IP address of the server (e.g. 192.168.0.107) ( defaults to local machine)
-	[OutputFilename]	Name of points file (pts) to write out.  defaults to Client-output.pts
-
 */
 
 // #define PI 3.14159265358979;
@@ -37,13 +9,16 @@ Usage [optional]:
 #include <tchar.h>
 #include <conio.h>
 #include <winsock2.h>
-#include <iostream>
+#include <thread>
 using namespace std;
 
 #include "NatNetTypes.h"
 #include "NatNetClient.h"
 #include "motorDriver.h"
 #include "controller.h"
+
+
+
 
 #pragma warning( disable : 4996 )
 
@@ -53,6 +28,26 @@ void resetClient();
 int CreateClient(int iConnectionType);
 void commandMotor(double x, double z, double xp, double zp);
 
+
+void my_sleep(unsigned long milliseconds) {
+	Sleep(milliseconds); // 100 ms
+}
+
+void enumerate_ports()
+{
+	vector<serial::PortInfo> devices_found = serial::list_ports();
+
+	vector<serial::PortInfo>::iterator iter = devices_found.begin();
+
+	while (iter != devices_found.end())
+	{
+		serial::PortInfo device = *iter++;
+
+		printf("(%s, %s, %s)\n", device.port.c_str(), device.description.c_str(),
+			device.hardware_id.c_str());
+	}
+}
+
 unsigned int MyServersDataPort = 3130;
 //unsigned int MyServersDataPort = 3883;
 unsigned int MyServersCommandPort = 3131;
@@ -60,6 +55,8 @@ int iConnectionType = ConnectionType_Multicast;
 //int iConnectionType = ConnectionType_Unicast;
 
 NatNetClient* theClient;
+Controller mirrorLawController;
+
 
 char szMyIPAddress[128] = "";
 char szServerIPAddress[128] = "";
@@ -68,10 +65,6 @@ int analogSamplesPerMocapFrame = 0;
 
 double fRate = 0.0;
 double expectedFramePeriod = 0.0;
-
-motorDriver motor;
-long m_lStartPosition = motor.getStartPosition();
-float TargetPositionRad = 0;
 
 long* pPosition = NULL;
 
@@ -95,7 +88,6 @@ DWORD pTimeOut;
 DWORD pErrorCode;
 
 
-Controller mirrorLaw;
 double xPos = 0.0;
 double zPos = 0.0;
 
@@ -105,9 +97,18 @@ double zPosOld = 0.0;
 double xVel = 0.0;
 double zVel = 0.0;
 
+
+
 // int _tmain(int argc, _TCHAR* argv[])
 int main()
 {
+	mirrorLawController.init();
+
+	// create a motor object
+	//MotorDriver motorObj;
+
+	std::cout << "Main Thread :: ID = " << std::this_thread::get_id() << std::endl;
+
 	int iResult;
 
 	// Create NatNet Client
@@ -257,8 +258,6 @@ int main()
 
 		//std::cout << "x-position is: " << x << "\n\n";
 
-
-
 	// Done - clean up: OptiTrack stuff.
 	theClient->Uninitialize();
 
@@ -277,7 +276,6 @@ int CreateClient(int iConnectionType)
 
 	// create NatNet client
 	theClient = new NatNetClient(iConnectionType);
-
 
 
 	// set the callback handlers
@@ -379,16 +377,29 @@ void __cdecl DataHandler(sFrameOfMocapData* data, void* pUserData)
 		//printf("Rigid Body [ID=%d  Error=%3.2f  Valid=%d]\n", data->RigidBodies[i].ID, data->RigidBodies[i].MeanError, bTrackingValid);
 		// printf("\tx\ty\tz\tqx\tqy\tqz\tqw\n");
 
-		/*  Uncomment this to print out the rigid body
-		printf("\t%3.2f\t%3.2f\t%3.2f\t%3.2f\t%3.2f\t%3.2f\t%3.2f\n",
+		// Uncomment this to print out the rigid body
+		/*printf("\t%3.2f\t%3.2f\t%3.2f\t%3.2f\t%3.2f\t%3.2f\t%3.2f\n",
 			data->RigidBodies[i].x,
 			data->RigidBodies[i].y,
 			data->RigidBodies[i].z,
 			data->RigidBodies[i].qx,
 			data->RigidBodies[i].qy,
 			data->RigidBodies[i].qz,
-			data->RigidBodies[i].qw);
-		*/
+			data->RigidBodies[i].qw);*/
+
+		double q0 = data->RigidBodies[i].qw;
+		double q1 = data->RigidBodies[i].qx;
+		double q2 = data->RigidBodies[i].qy;
+		double q3 = data->RigidBodies[i].qz;
+
+		double psi = atan2(-2 * (q1*q3 + q0*q2), pow(q0, 2) + pow(q1, 2) - pow(q2, 2) - pow(q3, 2));
+
+
+
+		printf("\t%3.2f\t%3.2f\t%3.2f\n",
+			data->RigidBodies[i].x,
+			data->RigidBodies[i].z,
+			psi);
 
 
 		/* printf("\tRigid body markers [Count=%d]\n", data->RigidBodies[i].nMarkers);
@@ -452,10 +463,13 @@ void __cdecl DataHandler(sFrameOfMocapData* data, void* pUserData)
 	xVel = (xPos - xPosOld) * fRate;
 	zVel = (zPos - zPosOld) * fRate;
 
-	printf("\t%3.2f\t%3.2f\t%3.2f\t%3.2f\n",
-		xPos, zPos, xVel, zVel);
+	/*printf("\t%3.2f\t%3.2f\t%3.2f\t%3.2f\n",
+		xPos, zPos, xVel, zVel);*/
 
-	commandMotor(xPos, zPos, xVel, zVel);
+	//Call MirrorLaw Controller
+	// mirrorLawController.setBallPosition(xPos, zPos);
+	// mirrorLawController.setBallVelocity(xVel, zVel);
+	// mirrorLawController.controlArm();
 
 	xPosOld = xPos;
 	zPosOld = zPos;
@@ -482,35 +496,4 @@ void resetClient()
 		printf("error re-initting Client\n");
 
 
-}
-
-
-void commandMotor(double x, double z, double xp, double zp)
-{
-	mirrorLaw.setBallPosition(x, z);
-	mirrorLaw.setBallVelocity(xp, zp);
-
-	/**********************************************/
-	/* Insert motor control commands from here on */
-
-	// Get the Current Position
-	motor.getPosition(pPosition);		// Read Motor Position
-
-	TargetPositionRad = mirrorLaw.computeDesiredPaddlePosition();		// Need conversion to ticks or something here.
-
-	// std::cout << "I'm commanding " << TargetPositionRad << "[rad] to the motor.\n";
-
-	//	while (!pTargetReached)
-	//	{
-	//motor.getPositionRad(&pPositionRad);		// Read Motor Position
-
-	//motor.moveToPositionRad(TargetPositionRad, Absolute, Immediately);
-
-	//motor.getMovementState(&pTargetReached, &pErrorCode);
-
-	std::cout << "Exiting commandMotor(double, double, double, double)\n";
-
-	//	}
-		/* End of motor commands */
-		/*************************/
 }

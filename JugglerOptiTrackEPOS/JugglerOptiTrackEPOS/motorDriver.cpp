@@ -1,6 +1,9 @@
 #include "motorDriver.h"
+#include <thread>
+#include <iostream>
 
-motorDriver::motorDriver()
+
+MotorDriver::MotorDriver()
 {
 	char deviceName[maxStrSize] = "EPOS4";
 	char protocolStackName[maxStrSize] = "MAXON SERIAL V2"; // Can be "MAXON_RS232", "MAXON SERIAL V2" OR "CANopen"
@@ -78,9 +81,11 @@ motorDriver::motorDriver()
 
 	// Set Operation Mode
 	VCS_SetOperationMode(keyHandle, m_usNodeId, m_bMode, &m_ulErrorCode);
+
+	initMotor();
 }
 
-motorDriver::~motorDriver()
+MotorDriver::~MotorDriver()
 {
 	// Set Disable State
 	VCS_SetDisableState(keyHandle, m_usNodeId, &m_ulErrorCode);
@@ -89,35 +94,41 @@ motorDriver::~motorDriver()
 	VCS_CloseDevice(keyHandle, &errorCode);
 }
 
-long motorDriver::getStartPosition()
+void MotorDriver::initMotor()
+{
+	m_lStartPosition = 0;
+	setDesiredMotorPosition(0);
+}
+
+long MotorDriver::getStartPosition()
 {
 	return m_lStartPosition;
 }
 
-void motorDriver::setStartPosition(long startPosition)
+void MotorDriver::setStartPosition(long startPosition)
 {
 	m_lStartPosition = startPosition;
 }
 
-BOOL motorDriver::getPositionProfile(DWORD* pProfileVelocity, DWORD* pProfileAcceleration, 
+BOOL MotorDriver::getPositionProfile(DWORD* pProfileVelocity, DWORD* pProfileAcceleration, 
 	DWORD* pProfileDeceleration, DWORD* pErrorCode)
 {
 	return VCS_GetPositionProfile(keyHandle, m_usNodeId, pProfileVelocity,
 		pProfileAcceleration, pProfileDeceleration, pErrorCode);
 }
 
-BOOL motorDriver::setPositionProfile(DWORD ProfileVelocity, DWORD ProfileAcceleration, DWORD ProfileDeceleration, DWORD * pErrorCode)
+BOOL MotorDriver::setPositionProfile(DWORD ProfileVelocity, DWORD ProfileAcceleration, DWORD ProfileDeceleration, DWORD * pErrorCode)
 {
 	return VCS_SetPositionProfile(keyHandle, m_usNodeId, ProfileVelocity, 
 		ProfileAcceleration, ProfileDeceleration, pErrorCode);
 }
 
-BOOL motorDriver::getPosition(long* pPosition)
+BOOL MotorDriver::getPosition(long* pPosition)
 {
 	return VCS_GetPositionIs(keyHandle, m_usNodeId, pPosition, &m_ulErrorCode);
 }
 
-BOOL motorDriver::getPositionRad(float * pPositionRad)
+BOOL MotorDriver::getPositionRad(double * pPositionRad)
 {
 	long posQC = 0;
 	if (VCS_GetPositionIs(keyHandle, m_usNodeId, &posQC, &m_ulErrorCode))
@@ -130,32 +141,68 @@ BOOL motorDriver::getPositionRad(float * pPositionRad)
 }
 
 
-BOOL motorDriver::moveToPosition(long TargetPosition, BOOL Absolute, BOOL Immediately)
+BOOL MotorDriver::moveToPosition(long moveToPosition, BOOL Absolute, BOOL Immediately)
 {
-	return VCS_MoveToPosition(keyHandle, m_usNodeId, TargetPosition, Absolute, Immediately, &m_ulErrorCode);
+	return VCS_MoveToPosition(keyHandle, m_usNodeId, moveToPosition, Absolute, Immediately, &m_ulErrorCode);
 }
 
-BOOL motorDriver::moveToPositionRad(float TargetPositionRad, BOOL Absolute, BOOL Immediately)
+BOOL MotorDriver::moveToPositionRad(double moveToPositionRad, BOOL Absolute, BOOL Immediately)
 {
-	return VCS_MoveToPosition(keyHandle, m_usNodeId, rad2qc(TargetPositionRad), Absolute, Immediately, &m_ulErrorCode);
+	return VCS_MoveToPosition(keyHandle, m_usNodeId, rad2qc(moveToPositionRad), Absolute, Immediately, &m_ulErrorCode);
 }
 
-BOOL motorDriver::getMovementState(BOOL * pTargetReached, DWORD * pErrorCode)
+BOOL MotorDriver::getMovementState(BOOL * pTargetReached, DWORD * pErrorCode)
 {
 	return VCS_GetMovementState(keyHandle, m_usNodeId, pTargetReached, pErrorCode);
 }
 
-BOOL motorDriver::getProtocolSettings(DWORD * pBaudrate, DWORD * pTimeOut, DWORD * pErrorCode)
+BOOL MotorDriver::getProtocolSettings(DWORD * pBaudrate, DWORD * pTimeOut, DWORD * pErrorCode)
 {
 	return VCS_GetProtocolStackSettings(keyHandle, pBaudrate, pTimeOut, pErrorCode);
 }
 
-long motorDriver::rad2qc(float angleInRadians)
+long MotorDriver::rad2qc(double angleInRadians)
 {
-	return 20000 / 2 / PI * (angleInRadians);
+	return (long) (20000 / 2 / PI * (angleInRadians));
 }
 
-float motorDriver::qc2rad(long angleInQuadratureCount)
+double MotorDriver::qc2rad(long angleInQuadratureCount)
 {
-	return 2 * PI / 20000 * (angleInQuadratureCount);
+	return (double) (2 * PI / 20000 * (angleInQuadratureCount));
+}
+
+void MotorDriver::motor_control_thread_function(int const & motorSetPosition)
+{
+
+	int & y = const_cast<int &>(motorSetPosition);
+	y++;
+	std::cout << "Motor Thread :: ID = " << std::this_thread::get_id() << std::endl;
+	// call motor
+	std::cout << "Motor Thread :: motorSetPosition = " << motorSetPosition << std::endl;
+	for (int i = 0; i < 10000; i++);
+	double newTargetPositionRad;
+	// get the new target position
+	this->getDesiredMotorPosition(&newTargetPositionRad);
+
+	std::cout << "Motor Control Thread Finished" << std::endl;
+}
+
+void MotorDriver::setDesiredMotorPosition(double const & desiredMotorPositionRad)
+{
+	mutexDesired.lock();
+
+	m_desiredMotorPositionRad = desiredMotorPositionRad;
+
+	mutexDesired.unlock();
+
+}
+
+void MotorDriver::getDesiredMotorPosition(double * desiredMotorPositionRad)
+{
+	mutexDesired.lock();
+	
+	*desiredMotorPositionRad = m_desiredMotorPositionRad;
+
+	mutexDesired.unlock();
+
 }
