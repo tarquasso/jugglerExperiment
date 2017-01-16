@@ -80,6 +80,7 @@ private:
 	Vector2d m_ballPosOptiTrack;
 	Vector2d m_ballVelOptiTrack;
 	double m_paddlePositionOptiTrack = 0.0;
+	uint64_t m_controlThreadCounter = 0;
 public:
 
 	MotorDriver motorObj;

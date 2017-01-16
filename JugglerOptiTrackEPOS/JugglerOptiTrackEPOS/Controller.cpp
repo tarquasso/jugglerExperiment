@@ -43,6 +43,8 @@ int motorSetPosition = 0;
 std::cout << "Start Motor Thread" << std::endl;
 
 // ToDo: get a handle on that thread
+m_initialized = true;
+
 std::thread threadObj(&Controller::controlArmThread, this);
 if (threadObj.joinable())
 {
@@ -51,9 +53,6 @@ if (threadObj.joinable())
 	std::cout << "Detaching Control Arm Thread " << std::endl;
 	threadObj.detach();
 }
-
-m_initialized = true;
-
 }
 
 // OPTITRACK
@@ -171,32 +170,37 @@ double Controller::computeDesiredPaddleVelocity()
 
 void Controller::controlArmThread()
 {
-	// Ensure it was initialized!
-	if (!m_initialized)
+	while (true)
 	{
-		printf("please init() controller!");
-		return;
+		// Ensure it was initialized!
+		if (!m_initialized)
+		{
+			printf("please init() controller!");
+			return;
+		}
+
+		// Velocity of Motor from Mbed
+		m_motorVelMeasRadS = serialComm.readMotorRadPerSec();
+
+		//Position of Paddle as set by OptiTrack
+		m_currentPaddlePositionRad = this->getPaddlePosition();
+
+		//Position and Velocity of Puck
+		Vector2d ballPos = this->getBallPosition();
+		x = ballPos(0);
+		z = ballPos(1);
+		Vector2d ballVel = this->getBallVelocity();
+		xp = ballVel(0);
+		zp = ballVel(1);
+
+		m_desiredPaddlePositionRad = this->computeDesiredPaddlePosition();
+
+		m_desiredPaddleVelocityRad = this->computeDesiredPaddleVelocity();
+
+		this->serialComm.sendMotorRadPerSec((float)m_desiredPaddleVelocityRad);
+		m_controlThreadCounter++;
+		std::this_thread::sleep_for(std::chrono::milliseconds(LOOP_PERIOD_MS));
+		if(m_controlThreadCounter % 333 == 0)
+			printf("ctrl thread alive!\n");
 	}
-
-	// Velocity of Motor from Mbed
-	m_motorVelMeasRadS = serialComm.readMotorRadPerSec();
-
-	//Position of Paddle as set by OptiTrack
-	m_currentPaddlePositionRad = this->getPaddlePosition();
-
-	//Position and Velocity of Puck
-	Vector2d ballPos = this->getBallPosition();
-	x = ballPos(0);
-	z = ballPos(1);
-	Vector2d ballVel = this->getBallVelocity();
-	xp = ballVel(0);
-	zp = ballVel(1);
-
-	m_desiredPaddlePositionRad = this->computeDesiredPaddlePosition();		
-	
-	m_desiredPaddleVelocityRad = this->computeDesiredPaddleVelocity();
-
-	this->serialComm.sendMotorRadPerSec((float)m_desiredPaddleVelocityRad);
-	std::this_thread::sleep_for(std::chrono::milliseconds(LOOP_PERIOD_MS));
-
 }
