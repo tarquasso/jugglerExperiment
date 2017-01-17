@@ -36,7 +36,7 @@ private:
 	bool m_initialized;
 
 	double r = 0.086;	// Radius of the ball
-	double ox = 0.303;	// Offset from the world frame to the paddle frame in the x-direction
+	double ox = 0.275;	// Offset from the world frame to the paddle frame in the x-direction
 	double oz = -0.256;		// Offset from the world frame to the paddle frame in the z-direction
 
 	double x, z, xp, zp;
@@ -75,7 +75,7 @@ private:
 	
 	std::mutex m_mutexPaddlePos, m_mutexBallPos, m_mutexBallVel;
 
-	double m_positionGain = 1;
+	double m_positionGain = 250;
 
 	// DONT TOUCH THOSE OTHER THAN BY GET SET FUNCTIONS
 	Vector2d m_ballPosOptiTrack;

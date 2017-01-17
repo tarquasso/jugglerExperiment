@@ -20,14 +20,15 @@ Controller::Controller():
 	psipRef = qpRef(0);
 	sigmapRef = qpRef(1);
 
+	setReferenceEnergy(0.0);
 	H = 1 / 2 * pow(0.0, 2) + g*sin(beta)*0.0;
 	Href = getReferenceEnergy();
 	Htilde = H - Href;
 
-	kappa0 = 0;
-	kappa1 = 0;
-	kappa00 = 0;
-	kappa01 = 0;
+	kappa0 = 0.075;
+	kappa1 = 0.01;
+	kappa00 = 0.0;
+	kappa01 = 0.0;
 }
 
 Controller::~Controller()
@@ -131,7 +132,7 @@ void Controller::updateReferencePosition()
 {
 	sigmaRef = -sqrt(-pow(r, 2) + pow(ox - x, 2) + pow(oz - z, 2));
 	psiRef = atan2(-(oz - z)*sigmaRef + r*(ox - x), (ox - x)*sigmaRef - r*(oz - z)) - M_PI;
-	psiRef = remainder(psiRef, (2 * M_PI));
+	psiRef = remainder(-psiRef, (2 * M_PI));
 }
 
 

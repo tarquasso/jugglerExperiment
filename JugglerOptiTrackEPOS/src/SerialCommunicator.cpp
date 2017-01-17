@@ -83,6 +83,8 @@ void SerialCommunicator::sendMessage(uint16_t message)
 	std::memcpy(bytesToBeSent, sentNumber.binary, SHORTSIZE);
 	bytes_wrote = my_serial.write(bytesToBeSent, MESSAGESIZE_WRITE);
 	
+	// printf("Sent Number = %d\n", sentNumber.unsignedShort);
+
 	writeCount += 1;
 	/*
 	if (writeCount % LOOPCOUNTS_INT == 0)
