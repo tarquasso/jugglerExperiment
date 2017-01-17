@@ -1,8 +1,8 @@
 #include "Controller.h"
 #include <iostream>
 
-Controller::Controller():
-	m_ballPosOptiTrack(0,0),
+Controller::Controller() :
+	m_ballPosOptiTrack(0, 0),
 	m_ballVelOptiTrack(0, 0),
 	m_initialized(false)
 {
@@ -10,8 +10,8 @@ Controller::Controller():
 	psiRef = 0.0;
 
 	JRigidInv << 0, 0,
-				 0, 0;
-	
+		0, 0;
+
 	xip(0) = 0.0;
 	xip(1) = 0.0;
 
@@ -37,69 +37,41 @@ Controller::~Controller()
 }
 
 
-void Controller::init()
+void Controller::initialize(OptiTrack* optiTrackPointer)
 {
-// create a motor object
+	if (m_initialized)
+	{
+		printf("Controller already initialized.  Exiting");
+	}
 
-std::cout << "Controller Init, Thread :: ID = " << std::this_thread::get_id() << std::endl;
+	m_optiTrackPointer = optiTrackPointer; //ToDo: check if pointer was initilaized
+	try {
+		m_serialComm = new SerialCommunicator();
+	}
+	catch(...)
+	{
+		printf("COM Port not open!");
 
-int motorSetPosition = 0;
-//std::cout << "In Main Thread : Before Thread Start motorSetPosition = " << motorSetPosition << std::endl;
+	};
+	// create a motor object
 
-std::cout << "Start Motor Thread" << std::endl;
+	std::cout << "Controller Init, Thread :: ID = " << std::this_thread::get_id() << std::endl;
 
-// ToDo: get a handle on that thread
-m_initialized = true;
+	int motorSetPosition = 0;
+	//std::cout << "In Main Thread : Before Thread Start motorSetPosition = " << motorSetPosition << std::endl;
 
-std::thread threadObj(&Controller::controlArmThread, this);
-if (threadObj.joinable())
-{
-	//threadObj.join();
-	//std::cout << "Joined Thread " << std::endl;
-	std::cout << "Detaching Control Arm Thread " << std::endl;
-	threadObj.detach();
+	// ToDo: get a handle on that thread
+	m_initialized = true;
+
+	std::thread threadObj(&Controller::controlArmThread, this);
+	if (threadObj.joinable())
+	{
+		//threadObj.join();
+		//std::cout << "Joined Thread " << std::endl;
+		std::cout << "Detaching Control Arm Thread " << std::endl;
+		threadObj.detach();
+	}
 }
-}
-
-// OPTITRACK
-double Controller::getPaddlePosition()
-{
-	std::lock_guard<std::mutex> guard(m_mutexPaddlePos);
-	return m_paddlePositionOptiTrack;
-}
-
-void Controller::setPaddlePosition(double paddlePos)
-{
-	std::lock_guard<std::mutex> guard(m_mutexPaddlePos);
-	m_paddlePositionOptiTrack = paddlePos;
-}
-
-Vector2d Controller::getBallPosition()
-{
-	std::lock_guard<std::mutex> guard(m_mutexBallPos);
-	return m_ballPosOptiTrack;
-}
-
-void Controller::setBallPosition(double x, double z)
-{
-	std::lock_guard<std::mutex> guard(m_mutexBallPos);
-	m_ballPosOptiTrack(0) = x;
-	m_ballPosOptiTrack(1) = z;
-}
-
-Vector2d Controller::getBallVelocity()
-{
-	std::lock_guard<std::mutex> guard(m_mutexBallVel);
-	return m_ballVelOptiTrack;
-}
-
-void Controller::setBallVelocity(double xp, double zp)
-{
-	std::lock_guard<std::mutex> guard(m_mutexBallVel);
-	m_ballVelOptiTrack(0) = xp;
-	m_ballVelOptiTrack(1) = zp;
-}
-
 
 double Controller::getReferenceEnergy()
 {
@@ -119,7 +91,7 @@ double Controller::computeVerticalEnergy()
 void Controller::computeJacobianInverse()
 {
 	double ballDistanceSquaredFromHinge = pow(ox - x, 2) + pow(oz - z, 2);
-	double sigma = sqrt( -pow(r, 2) + ballDistanceSquaredFromHinge);
+	double sigma = sqrt(-pow(r, 2) + ballDistanceSquaredFromHinge);
 
 	JRigidInv(0, 0) = (r*(x - ox) + (z - oz)*sigma) / ballDistanceSquaredFromHinge / sigma;
 	JRigidInv(0, 1) = (r*(z - oz) + (ox - x)*sigma) / ballDistanceSquaredFromHinge / sigma;
@@ -185,16 +157,17 @@ void Controller::controlArmThread()
 		}
 
 		// Velocity of Motor from Mbed
-		m_motorVelMeasRadS = serialComm.readMotorRadPerSec();
+		m_motorVelMeasRadS = this->m_serialComm->readMotorRadPerSec();
 
 		//Position of Paddle as set by OptiTrack
-		m_currentPaddlePositionRad = this->getPaddlePosition();
+		m_currentPaddlePositionRad = m_optiTrackPointer->getPaddlePosition();
 
 		//Position and Velocity of Puck
-		Vector2d ballPos = this->getBallPosition();
+
+		Vector2d ballPos = m_optiTrackPointer->getBallPosition();
 		x = ballPos(0);
 		z = ballPos(1);
-		Vector2d ballVel = this->getBallVelocity();
+		Vector2d ballVel = m_optiTrackPointer->getBallVelocity();
 		xp = ballVel(0);
 		zp = ballVel(1);
 
@@ -202,11 +175,11 @@ void Controller::controlArmThread()
 
 		m_desiredPaddleVelocityRad = this->computeDesiredPaddleVelocity();
 
-		this->serialComm.sendMotorRadPerSec((float)m_desiredPaddleVelocityRad);
+		this->m_serialComm->sendMotorRadPerSec((float)m_desiredPaddleVelocityRad);
 		m_controlThreadCounter++;
 		std::this_thread::sleep_for(std::chrono::milliseconds(LOOP_PERIOD_MS));
-		if(m_controlThreadCounter % 10 == 0)
-			printf("sigmaRef = %3.2f, \t psiRef = %3.2f, \t psiDes = %3.2f, \t psipDes = %3.2f\n", 
+		if (m_controlThreadCounter % 20 == 0)
+			printf("sigmaRef = %3.2f, \t psiRef = %3.2f, \t psiDes = %3.2f, \t psipDes = %3.2f\n",
 				sigmaRef, psiRef, m_desiredPaddlePositionRad, m_desiredPaddleVelocityRad);
 	}
 }

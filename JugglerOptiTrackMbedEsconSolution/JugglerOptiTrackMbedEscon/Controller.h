@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CONTROLLER_H
+#define CONTROLLER_H
 
 #define PI 3.14159265358979
 #define M_PI 3.14159265358979323846f
@@ -7,12 +8,13 @@
 
 #include <math.h>
 #include <Eigen/Dense>
-#include "motorDriver.h"
+//#include "motorDriver.h"
+#include "OptiTrack.h"
 
 #include <iostream>
-#include <string>
-#include <cstdio>
-#include <windows.h>
+//#include <string>
+//#include <cstdio>
+//#include <windows.h>
 
 #include "serial/serial.h"
 #include "SerialCommunicator.h"
@@ -32,6 +34,29 @@ typedef union {
 
 class Controller
 {
+public:
+	Controller();
+	//Controller(double x, double z, double xp, double zp);
+	~Controller();
+
+	void initialize(OptiTrack* optiTrackPointer);
+
+protected:
+	double getReferenceEnergy();
+	void setReferenceEnergy(double referenceEnergy);
+
+	void updateReferencePosition();
+	void updateReferenceVelocity();
+
+	void computeJacobianInverse();
+
+	double computeVerticalEnergy();
+
+	double computeDesiredPaddlePosition();
+	double computeDesiredPaddleVelocity();
+
+	void controlArmThread();
+
 private:
 	bool m_initialized;
 
@@ -82,44 +107,9 @@ private:
 	Vector2d m_ballVelOptiTrack;
 	double m_paddlePositionOptiTrack = 0.0;
 	uint64_t m_controlThreadCounter = 0;
-public:
-
-	MotorDriver motorObj;
-	SerialCommunicator serialComm;
-
-public:
-	Controller();
-	//Controller(double x, double z, double xp, double zp);
-	~Controller();
-
-	void init();
-
-	double getPaddlePosition();
-	void setPaddlePosition(double);
-
-	Vector2d getBallPosition();
-	void setBallPosition(double, double);
-
-	Vector2d getBallVelocity();
-	void setBallVelocity(double, double);
-
-
 	
-protected:
-	double getReferenceEnergy();
-	void setReferenceEnergy(double referenceEnergy);
-
-	void updateReferencePosition();
-	void updateReferenceVelocity();
-
-	void computeJacobianInverse();
-
-	double computeVerticalEnergy();
-
-	double computeDesiredPaddlePosition();
-	double computeDesiredPaddleVelocity();
-
-	void controlArmThread();
-
-
+	SerialCommunicator* m_serialComm;
+	OptiTrack* m_optiTrackPointer;
 };
+
+#endif //CONTROLLER_H

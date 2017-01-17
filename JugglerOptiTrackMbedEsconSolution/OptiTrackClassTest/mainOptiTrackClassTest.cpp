@@ -1,6 +1,5 @@
 #include "OptiTrack.h"
 
-
 int main()
 {	
 	OptiTrack optiTrack;

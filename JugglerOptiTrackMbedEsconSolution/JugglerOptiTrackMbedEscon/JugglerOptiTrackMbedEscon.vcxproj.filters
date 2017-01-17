@@ -18,19 +18,10 @@
     <ClInclude Include="Definitions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="NatNetClient.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="NatNetTypes.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="StdAfx.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="motorDriver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Controller.h">
@@ -48,14 +39,17 @@
     <ClInclude Include="..\include\SerialCommunicator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\NatNetClient.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\NatNetTypes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\OptiTrack.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="SoftJuggler.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="motorDriver.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Controller.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -71,5 +65,16 @@
     <ClCompile Include="..\src\SerialCommunicator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\OptiTrack.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mainJugglerOptiTrackMbedEscon.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\include\eigenLibrary\Eigen\Dense">
+      <Filter>Header Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
