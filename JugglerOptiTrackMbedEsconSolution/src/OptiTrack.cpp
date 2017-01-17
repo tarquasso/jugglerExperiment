@@ -249,6 +249,7 @@ void __cdecl dataCallback(sFrameOfMocapData* data, void* pUserData)
 // DataHandler receives data from the server
 void OptiTrack::dataCallback(sFrameOfMocapData* data)
 {
+	//printf("CALLBACK!\n");
 	int i = 0;
 
 	// printf("FrameID : %d\n", data->iFrame);
