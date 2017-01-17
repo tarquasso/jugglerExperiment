@@ -1,11 +1,3 @@
-#include <string>
-#include <iostream>
-#include <cstdio>
-#include <thread>         // std::this_thread::sleep_for
-#include <chrono>         // std::chrono::seconds
-
-//#include <windows.h>
-//#include <math.h>
 #include "OptiTrack.h"
 
 
@@ -27,4 +19,5 @@ int main()
 			return 1;
 		}
 	return ErrorCode_OK;
+
 }

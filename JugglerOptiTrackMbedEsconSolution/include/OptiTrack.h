@@ -1,74 +1,79 @@
-#ifndef SERIAL_COMMUNICATOR_H
-#define SERIAL_COMMUNICATOR_H
+#ifndef OPTITRACK_H
+#define OPTITRACK_H
 
-#include <string>
-#include "serial/serial.h"
+#include "NatNetTypes.h"
+#include "NatNetClient.h"
+#include <mutex>
+#include <Eigen/Dense>
+using namespace Eigen;
 
-using std::string;
-
-//#include <mutex>
-
-#define RPM_MAX 10000.0f
-#define SHORTSIZE 2
-#define MESSAGESIZE SHORTSIZE+1
-#define MESSAGESIZE_WRITE MESSAGESIZE
-
-
-typedef union {
-    uint16_t unsignedShort;
-    uint8_t binary[SHORTSIZE];
-} binaryUShort;
-
-class SerialCommunicator
+class OptiTrack
 {
-  public:
-    SerialCommunicator();
-    ~SerialCommunicator();
-	
-	void sendMotorRadPerSec(float rad_s);
-	void sendMotorRpm(float rpm);
-	float readMotorRpm();
-	float readMotorRadPerSec();
+public:
+	OptiTrack();
+	~OptiTrack();
+	int initialize();
+	void resetClient();
+	int enterMenuMode();
 
-    void enumerate_ports();
-    void print_usage();
+	double getPaddlePosition();
+	Vector2d getBallPosition();
+	Vector2d getBallVelocity();
 
-	static uint16_t convertRadSToMessage(float rad_per_second);
-	static uint16_t convertRpmToMessage(float rpm);
-	static float convertMessageToRpm(uint16_t message);
-	static float convertMessageToRadS(uint16_t message);
-
+	void dataCallback(sFrameOfMocapData* data);
 
 protected:
-	//void readThread();
-	void sendMessage(uint16_t message);
-	void getNewMessage();
+	int CreateClient(int iConnectionType);
 
-  private:
-    std::string port;
-    unsigned long baud;
-    // port, baudrate, timeout in milliseconds
-    serial::Serial my_serial;
+	void setPaddlePosition(const double&);
+	void setBallPosition(const double&, const double&);
+	void setBallVelocity(const double&, const double&);
 
-    binaryUShort sentNumber;
-    binaryUShort receivedNumber;
+private:
+	bool m_initialized;
+	unsigned int MyServersDataPort = 3130;
+	//unsigned int MyServersDataPort = 3883;
+	unsigned int MyServersCommandPort = 3131;
+	int iConnectionType = ConnectionType_Multicast; //ConnectionType_Unicast;
 
-    uint8_t incomingData[1030];
-    uint8_t endMessage = 0x0A;
+	NatNetClient* m_theClient;
 
-	//std::chrono::milliseconds duraWrite(LOOPRATE_MS);
-	//my_serial.flushOutput();
+	char szMyIPAddress[128] = "";
+	char szServerIPAddress[128] = "";
 
-	uint8_t bytesToBeSent[MESSAGESIZE_WRITE];
-	binaryUShort sentNumberLast;
-	uint64_t writeCount;
-	size_t bytes_wrote;
-	size_t whatIsAvailable;
-	size_t bytes_read;
-	uint64_t readCount;
-	//mutex mutexRec;
-	//std::chrono::microseconds durationReadThreadSleepUS;
+	int analogSamplesPerMocapFrame = 0;
+
+	double fRate = 0.0;
+	double expectedFramePeriod = 0.0;
+
+	double xPos = 0.0;
+	double zPos = 0.0;
+
+	double xPosOld = 0.0;
+	double zPosOld = 0.0;
+
+	double xVel = 0.0;
+	double zVel = 0.0;
+
+	double q0 = 1;
+	double q1 = 0;
+	double q2 = 0;
+	double q3 = 0;
+	double psi = 0;
+
+	// DONT TOUCH THOSE OTHER THAN BY GET SET FUNCTIONS
+	Vector2d m_ballPosOptiTrack;
+	Vector2d m_ballVelOptiTrack;
+	double m_paddlePositionOptiTrack = 0.0;
+	 
+	std::mutex m_mutexPaddlePos, m_mutexBallPos, m_mutexBallVel;
 
 };
 
-#endif
+//void __cdecl DataHandler(sFrameOfMocapData* data, void* pUserData);		// receives data from the server
+//void __cdecl MessageHandler(int msgType, char* msg);		            // receives NatNet error mesages
+
+void __cdecl dataCallback(sFrameOfMocapData *, void *);
+void __cdecl messageCallback(int, char*);
+
+#endif //OPTITRACK_H

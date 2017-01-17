@@ -2,12 +2,9 @@
 
 #include <iostream>
 
-//using std::string;
-//using std::exception;
-//using std::cout;
-//using std::cerr;
-//using std::endl;
-//using std::vector;
+//#include <string>
+#include <stdio.h>
+#include <conio.h>
 
 /* Constructor */
 OptiTrack::OptiTrack():
