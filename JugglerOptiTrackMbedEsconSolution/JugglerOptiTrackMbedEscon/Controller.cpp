@@ -25,8 +25,8 @@ Controller::Controller() :
 	Href = getReferenceEnergy();
 	Htilde = H - Href;
 
-	kappa0 = 0.075;
-	kappa1 = 0.01;
+	kappa0 = 0.075; //reflection gain of mirror law 0.075
+	kappa1 = 0.01; // restoring of the energy href 0.01
 	kappa00 = 0.0;
 	kappa01 = 0.0;
 }
@@ -37,7 +37,7 @@ Controller::~Controller()
 }
 
 
-void Controller::initialize(OptiTrack* optiTrackPointer)
+int Controller::initialize(OptiTrack* optiTrackPointer)
 {
 	if (m_initialized)
 	{
@@ -50,9 +50,11 @@ void Controller::initialize(OptiTrack* optiTrackPointer)
 	}
 	catch(...)
 	{
+		// catch any serial errors!
 		printf("COM Port not open!");
+		return 1;
+	}
 
-	};
 	// create a motor object
 
 	std::cout << "Controller Init, Thread :: ID = " << std::this_thread::get_id() << std::endl;
@@ -62,6 +64,8 @@ void Controller::initialize(OptiTrack* optiTrackPointer)
 
 	// ToDo: get a handle on that thread
 	m_initialized = true;
+
+	// Start the Thread!
 
 	std::thread threadObj(&Controller::controlArmThread, this);
 	if (threadObj.joinable())
@@ -156,6 +160,8 @@ void Controller::controlArmThread()
 			return;
 		}
 
+		// printf("I'm in the controller thread.\n");
+
 		// Velocity of Motor from Mbed
 		m_motorVelMeasRadS = this->m_serialComm->readMotorRadPerSec();
 
@@ -178,7 +184,7 @@ void Controller::controlArmThread()
 		this->m_serialComm->sendMotorRadPerSec((float)m_desiredPaddleVelocityRad);
 		m_controlThreadCounter++;
 		std::this_thread::sleep_for(std::chrono::milliseconds(LOOP_PERIOD_MS));
-		if (m_controlThreadCounter % 20 == 0)
+		if (m_controlThreadCounter % LOOPCOUNTS_INT == 0)
 			printf("sigmaRef = %3.2f, \t psiRef = %3.2f, \t psiDes = %3.2f, \t psipDes = %3.2f\n",
 				sigmaRef, psiRef, m_desiredPaddlePositionRad, m_desiredPaddleVelocityRad);
 	}

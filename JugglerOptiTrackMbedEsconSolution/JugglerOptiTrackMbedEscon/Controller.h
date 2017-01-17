@@ -39,7 +39,7 @@ public:
 	//Controller(double x, double z, double xp, double zp);
 	~Controller();
 
-	void initialize(OptiTrack* optiTrackPointer);
+	int initialize(OptiTrack* optiTrackPointer);
 
 protected:
 	double getReferenceEnergy();

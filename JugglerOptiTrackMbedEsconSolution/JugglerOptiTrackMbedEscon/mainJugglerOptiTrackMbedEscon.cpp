@@ -22,8 +22,13 @@ int main()
 	}
 
 	//start controller
-	Controller mirrorLawController;
-	mirrorLawController.initialize(&optiTrack);
+	Controller controller;
+	errorCode = controller.initialize(&optiTrack);
+	if (errorCode != ErrorCode_OK)
+	{
+		printf("Something went wrong initializing the Controller.");
+		return 1;
+	}
 
 	errorCode = optiTrack.enterMenuMode();
 	if (errorCode != ErrorCode_OK)

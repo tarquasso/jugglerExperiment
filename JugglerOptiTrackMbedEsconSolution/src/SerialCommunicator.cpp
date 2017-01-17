@@ -12,7 +12,6 @@
 #define M_PI 3.14159265358979323846f
 
 #define LOOPRATE_MS 2
-#define LOOPCOUNTS_INT 500
 #define POWER_OFF 32768.0f
 #define BACKWARD_MAX 0
 #define FORWARD_MAX USHRT_MAX
@@ -83,7 +82,7 @@ void SerialCommunicator::sendMessage(uint16_t message)
 	std::memcpy(bytesToBeSent, sentNumber.binary, SHORTSIZE);
 	bytes_wrote = my_serial.write(bytesToBeSent, MESSAGESIZE_WRITE);
 	
-	// printf("Sent Number = %d\n", sentNumber.unsignedShort);
+	//printf("Sent Number = %d\n", sentNumber.unsignedShort);
 
 	writeCount += 1;
 	/*
@@ -93,14 +92,16 @@ void SerialCommunicator::sendMessage(uint16_t message)
 		printf("Delta: %d, lastSent: %d, received: %d \n", sentNumberLast.unsignedShort - receivedNumber.unsignedShort, sentNumberLast.unsignedShort, receivedNumber.unsignedShort);
 		// writeCountOld = writeCount;
 	}
+	
 	if (writeCount % LOOPCOUNTS_INT == 1)
 	{
 		// cout << "Read Iter: " << readCount << ", Len: " << bytes_read << ", Val: " << receivedNumber.floatingPoint << " BIN: " << (int)receivedNumber.binary[0] << " " << (int)receivedNumber.binary[1] << " " << (int)receivedNumber.binary[2] << " " << (int)receivedNumber.binary[3] << endl;
 		// cout << "-----------------------------------------------------------------------------" << endl;
 		//	writeCountOld = writeCount;
 	}
-	sentNumberLast = sentNumber;
 	*/
+	sentNumberLast = sentNumber;
+	
 }
 
 float SerialCommunicator::readMotorRadPerSec()

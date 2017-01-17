@@ -311,8 +311,8 @@ void OptiTrack::dataCallback(sFrameOfMocapData* data)
 		}
 	}
 
-	//printf("\t%3.3f\t%3.3f\t%3.2f\t%3.2f\t%3.3f\n",
-	//	xPos, zPos, xVel, zVel, psi);
+	/*printf("\t%3.3f\t%3.3f\t%3.2f\t%3.2f\t%3.3f\n",
+		xPos, zPos, xVel, zVel, psi);*/
 
 	this->setPaddlePosition(psi);
 	this->setBallPosition(xPos, zPos);

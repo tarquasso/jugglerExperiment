@@ -12,7 +12,7 @@ using std::string;
 #define SHORTSIZE 2
 #define MESSAGESIZE SHORTSIZE+1
 #define MESSAGESIZE_WRITE MESSAGESIZE
-
+#define LOOPCOUNTS_INT 300
 
 typedef union {
     uint16_t unsignedShort;
