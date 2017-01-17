@@ -1,6 +1,7 @@
 #pragma once
 
 #define PI 3.14159265358979
+#define M_PI 3.14159265358979323846f
 #define FLOATSIZE 4
 #define LOOP_PERIOD_MS 3
 
@@ -34,9 +35,9 @@ class Controller
 private:
 	bool m_initialized;
 
-	double r = 0.131;	// Radius of the ball
-	double ox = -0.145;	// Offset from the world frame to the paddle frame in the x-direction
-	double oz = 0.0;		// Offset from the world frame to the paddle frame in the z-direction
+	double r = 0.086;	// Radius of the ball
+	double ox = 0.303;	// Offset from the world frame to the paddle frame in the x-direction
+	double oz = -0.256;		// Offset from the world frame to the paddle frame in the z-direction
 
 	double x, z, xp, zp;
 

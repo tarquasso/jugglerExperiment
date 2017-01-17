@@ -23,6 +23,11 @@ Controller::Controller():
 	H = 1 / 2 * pow(0.0, 2) + g*sin(beta)*0.0;
 	Href = getReferenceEnergy();
 	Htilde = H - Href;
+
+	kappa0 = 0;
+	kappa1 = 0;
+	kappa00 = 0;
+	kappa01 = 0;
 }
 
 Controller::~Controller()
@@ -112,22 +117,21 @@ double Controller::computeVerticalEnergy()
 
 void Controller::computeJacobianInverse()
 {
-	JRigidInv(0, 0) = (ox*r - r*x + sqrt(pow(ox, 2) - pow(r, 2) - 2 * ox*x + pow(x, 2) + pow(oz - z, 2))*(-oz + z)) /
-		((pow(ox - x, 2) + pow(oz - z, 2))*sqrt(pow(ox, 2) - pow(r, 2) - 2 * ox*x + pow(x, 2) + pow(oz - z, 2)));
+	double ballDistanceSquaredFromHinge = pow(ox - x, 2) + pow(oz - z, 2);
+	double sigma = sqrt( -pow(r, 2) + ballDistanceSquaredFromHinge);
 
-	JRigidInv(0, 1) = (oz*r + (ox - x)*sqrt(pow(ox, 2) - pow(r, 2) - 2 * ox*x + pow(x, 2) + pow(oz - z, 2)) - r*z) /
-		((pow(ox - x, 2) + pow(oz - z, 2))*sqrt(pow(ox, 2) - pow(r, 2) - 2 * ox*x + pow(x, 2) + pow(oz - z, 2)));
-
-	JRigidInv(1, 0) = (-ox + x) / sqrt(pow(ox, 2) - pow(r, 2) - 2 * ox*x + pow(x, 2) + pow(oz - z, 2));
-
-	JRigidInv(1, 1) = (-oz + z) / sqrt(pow(ox, 2) - pow(r, 2) - 2 * ox*x + pow(x, 2) + pow(oz - z, 2));
+	JRigidInv(0, 0) = (r*(x - ox) + (z - oz)*sigma) / ballDistanceSquaredFromHinge / sigma;
+	JRigidInv(0, 1) = (r*(z - oz) + (ox - x)*sigma) / ballDistanceSquaredFromHinge / sigma;
+	JRigidInv(1, 0) = (ox - x) / sigma;
+	JRigidInv(1, 1) = (oz - z) / sigma;
 }
 
 
 void Controller::updateReferencePosition()
 {
-	sigmaRef = sqrt(-pow(r, 2) + pow(ox - x, 2) + pow(oz - z, 2));
-	psiRef = atan2((oz - z)*sigmaRef + r*(x - ox), (x - ox)*sigmaRef + r*(z - oz));
+	sigmaRef = -sqrt(-pow(r, 2) + pow(ox - x, 2) + pow(oz - z, 2));
+	psiRef = atan2(-(oz - z)*sigmaRef + r*(ox - x), (ox - x)*sigmaRef - r*(oz - z)) - M_PI;
+	psiRef = remainder(psiRef, (2 * M_PI));
 }
 
 
@@ -200,7 +204,8 @@ void Controller::controlArmThread()
 		this->serialComm.sendMotorRadPerSec((float)m_desiredPaddleVelocityRad);
 		m_controlThreadCounter++;
 		std::this_thread::sleep_for(std::chrono::milliseconds(LOOP_PERIOD_MS));
-		if(m_controlThreadCounter % 333 == 0)
-			printf("ctrl thread alive!\n");
+		if(m_controlThreadCounter % 10 == 0)
+			printf("sigmaRef = %3.2f, \t psiRef = %3.2f, \t psiDes = %3.2f, \t psipDes = %3.2f\n", 
+				sigmaRef, psiRef, m_desiredPaddlePositionRad, m_desiredPaddleVelocityRad);
 	}
 }

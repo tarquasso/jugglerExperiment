@@ -358,92 +358,6 @@ void __cdecl DataHandler(sFrameOfMocapData* data, void* pUserData)
 	if (bTrackedModelsChanged)
 		printf("Models Changed.\n");
 
-	/* // Other Markers
-	printf("Other Markers [Count=%d]\n", data->nOtherMarkers);
-	for(i=0; i < data->nOtherMarkers; i++)
-	{
-		printf("Other Marker %d : %3.2f\t%3.2f\t%3.2f\n",
-			i,
-			data->OtherMarkers[i][0],
-			data->OtherMarkers[i][1],
-			data->OtherMarkers[i][2]);
-	}*/
-
-	// // Rigid Bodies
-	// printf("Rigid Bodies [Count=%d]\n", data->nRigidBodies);
-	for (i = 0; i < data->nRigidBodies; i++)
-	{
-		// params
-		// 0x01 : bool, rigid body was successfully tracked in this frame
-		bool bTrackingValid = data->RigidBodies[i].params & 0x01;
-
-		//printf("Rigid Body [ID=%d  Error=%3.2f  Valid=%d]\n", data->RigidBodies[i].ID, data->RigidBodies[i].MeanError, bTrackingValid);
-		// printf("\tx\ty\tz\tqx\tqy\tqz\tqw\n");
-
-		// Uncomment this to print out the rigid body
-		/*printf("\t%3.2f\t%3.2f\t%3.2f\t%3.2f\t%3.2f\t%3.2f\t%3.2f\n",
-			data->RigidBodies[i].x,
-			data->RigidBodies[i].y,
-			data->RigidBodies[i].z,
-			data->RigidBodies[i].qx,
-			data->RigidBodies[i].qy,
-			data->RigidBodies[i].qz,
-			data->RigidBodies[i].qw); */
-
-		
-		//double q0 = data->RigidBodies[i].qw;
-		//double q1 = data->RigidBodies[i].qx;
-		//double q2 = data->RigidBodies[i].qy;
-		//double q3 = data->RigidBodies[i].qz;
-
-		//double psi = atan2(-2 * (q1*q3 + q0*q2), pow(q0, 2) + pow(q1, 2) - pow(q2, 2) - pow(q3, 2));
-
-
-
-		//printf("\t%3.2f\t%3.2f\t%3.2f\n",
-		//	data->RigidBodies[i].x,
-		//	data->RigidBodies[i].z,
-		//	psi);
-		
-
-		/* printf("\tRigid body markers [Count=%d]\n", data->RigidBodies[i].nMarkers);
-		for(int iMarker=0; iMarker < data->RigidBodies[i].nMarkers; iMarker++)
-		{
-				printf("\t\t");
-				if(data->RigidBodies[i].MarkerIDs)
-					printf("MarkerID:%d", data->RigidBodies[i].MarkerIDs[iMarker]);
-				if(data->RigidBodies[i].MarkerSizes)
-					printf("\tMarkerSize:%3.2f", data->RigidBodies[i].MarkerSizes[iMarker]);
-				if(data->RigidBodies[i].Markers)
-					printf("\tMarkerPos:%3.2f,%3.2f,%3.2f\n" ,
-						data->RigidBodies[i].Markers[iMarker][0],
-						data->RigidBodies[i].Markers[iMarker][1],
-						data->RigidBodies[i].Markers[iMarker][2]);
-			}*/
-	}
-
-
-	 //// labeled markers
-  //   bool bOccluded;     // marker was not visible (occluded) in this frame
-  //   bool bPCSolved;     // reported position provided by point cloud solve
-  //   bool bModelSolved;  // reported position provided by model solve
-	 //printf("Labeled Markers [Count=%d]\n", data->nLabeledMarkers);
-	 //for(i=0; i < data->nLabeledMarkers; i++)
-	 //{
-  //       bOccluded = ((data->LabeledMarkers[i].params & 0x01)!=0);
-  //       bPCSolved = ((data->LabeledMarkers[i].params & 0x02)!=0);
-  //       bModelSolved = ((data->LabeledMarkers[i].params & 0x04)!=0);
-	 //	sMarker marker = data->LabeledMarkers[i];
-  //       int modelID, markerID;
-  //       theClient->DecodeID(marker.ID, &modelID, &markerID);
-	 //	printf("Labeled Marker [ModelID=%d, MarkerID=%d, Occluded=%d, PCSolved=%d, ModelSolved=%d] [size=%3.2f] [pos=%3.2f,%3.2f,%3.2f]\n",
-  //           modelID, markerID, bOccluded, bPCSolved, bModelSolved,  marker.size, marker.x, marker.y, marker.z);
-  //
-	// 	// xPos += marker.x;
-	// 	// zPos += marker.z;
-	 //}
-	// End of data receipt.
-
 	// get frame rate from host
 	void* pResult;
 	int ret = 0;
@@ -491,8 +405,8 @@ void __cdecl DataHandler(sFrameOfMocapData* data, void* pUserData)
 		}
 	}
 
-	/* printf("\t%3.2f\t%3.2f\t%3.2f\t%3.2f\t%3.2f\n",
-		xPos, zPos, xVel, zVel, psi); */
+	/*printf("\t%3.3f\t%3.3f\t%3.2f\t%3.2f\t%3.3f\n",
+		xPos, zPos, xVel, zVel, psi);*/
 
 
 	mirrorLawController.setPaddlePosition(psi);
