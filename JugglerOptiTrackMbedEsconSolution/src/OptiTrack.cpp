@@ -1,194 +1,384 @@
-#include "SerialCommunicator.h"
+#include "OptiTrack.h"
 
 #include <iostream>
 
-//#include <cstdio>
-//#include <windows.h>
-//#define _USE_MATH_DEFINES // for C++  
-//#include <cmath>
-
-//#include <thread>
-
-#define M_PI 3.14159265358979323846f
-
-#define LOOPRATE_MS 2
-#define LOOPCOUNTS_INT 500
-#define POWER_OFF 32768.0f
-#define BACKWARD_MAX 0
-#define FORWARD_MAX USHRT_MAX
-#define MESSAGE_MAX 65535.0f
-#define RAD_S_TO_RPM 9.549296596f
-#define RPM_TO_RAD_S 0.104719755f
-#define RADS_MAX RPM_MAX*RPM_TO_RAD_S
-
 //using std::string;
 //using std::exception;
-using std::cout;
-using std::cerr;
-using std::endl;
-using std::vector;
+//using std::cout;
+//using std::cerr;
+//using std::endl;
+//using std::vector;
 
 /* Constructor */
-SerialCommunicator::SerialCommunicator():
-    port("COM5"),
-    baud(115200),
-    my_serial(port, baud, serial::Timeout::simpleTimeout(1))
+OptiTrack::OptiTrack():
+	m_initialized(false)
 {
-    //my_serial.setTimeout(serial::Timeout::max(), 1, 0, 1, 0);
-    
-	my_serial.flush(); //flush the serial line
+}
 
-    //	Sleep(100);
-    cout << "Is the serial port open?";
-	if (my_serial.isOpen())
-		cout << " Yes." << endl;
+int OptiTrack::initialize()
+{
+	if (m_initialized)
+	{
+		printf("Already initialized.  Exiting");
+		return 1;
+	}
+
+	int iResult;
+
+	// Create NatNet Client
+	iResult = CreateClient(iConnectionType);
+	if (iResult != ErrorCode_OK)
+	{
+		printf("Error initializing client.  See log for details.  Exiting");
+		return 1;
+	}
 	else
-		cout << " No." << endl;
-
-	// setup the message by setting last byte to be endmessage
-	bytesToBeSent[MESSAGESIZE_WRITE - 1] = endMessage;
-
-	sentNumber.unsignedShort = 0;
-	//sentNumberLast = sentNumber;
-	writeCount = 0;
-	//int writeCountOld = writeCount;
-	bytes_read = 0;
-	readCount = 0;
-	//durationReadThreadSleepUS = 500;
-}
-
-/* Destructor */
-SerialCommunicator::~SerialCommunicator()
-{
-
-}
-
-
-void SerialCommunicator::sendMotorRadPerSec(float rad_s)
-{
-	uint16_t message = this->convertRadSToMessage(rad_s);
-	this->sendMessage(message);
-}
-
-void SerialCommunicator::sendMotorRpm(float rpm)
-{
-	uint16_t message = this->convertRpmToMessage(rpm);
-	this->sendMessage(message);
-}
-
-void SerialCommunicator::sendMessage(uint16_t message)
-{
-	sentNumber.unsignedShort = message;
-
-	std::memcpy(bytesToBeSent, sentNumber.binary, SHORTSIZE);
-	bytes_wrote = my_serial.write(bytesToBeSent, MESSAGESIZE_WRITE);
-	
-	// printf("Sent Number = %d\n", sentNumber.unsignedShort);
-
-	writeCount += 1;
-	/*
-	if (writeCount % LOOPCOUNTS_INT == 0)
 	{
-		// cout << "Writ Iter: " << writeCount << ", Len: " << bytes_wrote << ", Val: " << sentNumber.floatingPoint << " BIN: " << (int)sentNumber.binary[0] << " " << (int)sentNumber.binary[1] << " " << (int)sentNumber.binary[2] << " " << (int)sentNumber.binary[3] << endl;
-		printf("Delta: %d, lastSent: %d, received: %d \n", sentNumberLast.unsignedShort - receivedNumber.unsignedShort, sentNumberLast.unsignedShort, receivedNumber.unsignedShort);
-		// writeCountOld = writeCount;
+		printf("Client initialized and ready.\n");
 	}
-	if (writeCount % LOOPCOUNTS_INT == 1)
+
+	// send/receive test request
+	printf("[SampleClient] Sending Test Request\n");
+	void* response;
+	int nBytes;
+	iResult = m_theClient->SendMessageAndWait("TestRequest", &response, &nBytes);
+	if (iResult == ErrorCode_OK)
 	{
-		// cout << "Read Iter: " << readCount << ", Len: " << bytes_read << ", Val: " << receivedNumber.floatingPoint << " BIN: " << (int)receivedNumber.binary[0] << " " << (int)receivedNumber.binary[1] << " " << (int)receivedNumber.binary[2] << " " << (int)receivedNumber.binary[3] << endl;
-		// cout << "-----------------------------------------------------------------------------" << endl;
-		//	writeCountOld = writeCount;
+		printf("[SampleClient] Received: %s", (char*)response);
 	}
-	sentNumberLast = sentNumber;
-	*/
-}
 
-float SerialCommunicator::readMotorRadPerSec()
-{
-	this->getNewMessage();
-	return this->convertMessageToRadS(receivedNumber.unsignedShort);
-}
-
-float SerialCommunicator::readMotorRpm()
-{
-	this->getNewMessage();
-	return this->convertMessageToRpm(receivedNumber.unsignedShort);
-}
-
-void SerialCommunicator::getNewMessage()
-{
-	whatIsAvailable = my_serial.available();
-	//cout << "Bytes Available: " << whatIsAvailable << end;l
-	if (whatIsAvailable < MESSAGESIZE)
-		printf("too short message - bytes Available: %d\n", whatIsAvailable);
-
-	if (whatIsAvailable > MESSAGESIZE - 1)
+	// Retrieve Data Descriptions from server
+	printf("\n\n[SampleClient] Requesting Data Descriptions...");
+	sDataDescriptions* pDataDefs = NULL;
+	int nBodies = m_theClient->GetDataDescriptions(&pDataDefs);
+	if (!pDataDefs)
 	{
-		
-
-		bytes_read = my_serial.read(incomingData, whatIsAvailable);
-		//cout << "Bytes read: " << length << endl;
-		//if (bytes_read == MESSAGESIZE && incomingData[MESSAGESIZE - 1] == endMessage)
-		if (incomingData[bytes_read - 1] == endMessage)
+		printf("[SampleClient] Unable to retrieve Data Descriptions.");
+	}
+	else
+	{
+		printf("[SampleClient] Received %d Data Descriptions:\n", pDataDefs->nDataDescriptions);
+		for (int i = 0; i < pDataDefs->nDataDescriptions; i++)
 		{
-			std::memcpy(receivedNumber.binary, &(incomingData[bytes_read - 1 - SHORTSIZE]), SHORTSIZE);
-			//std::memcpy(receivedNumber.binary, incomingData), SHORTSIZE);
-			//std::memcpy(otherNumber.binary, &(incomingData[FLOATSIZE]), FLOATSIZE);
-			readCount++;
-			//if (readCount % LOOPCOUNTS_INT == 0)
-			//	cout << "Read Iter: " << readCount << ", Len: " << bytes_read << ", Val: " << receivedNumber.floatingPoint << endl;
-			if (whatIsAvailable > MESSAGESIZE)
-				printf("long message (multiple) - bytes Available: %d\n", whatIsAvailable);
-		}
-		else {
-			printf("long message (wrong length) - bytes Available: %d\n", whatIsAvailable);
+			printf("Data Description # %d (type=%d)\n", i, pDataDefs->arrDataDescriptions[i].type);
+			if (pDataDefs->arrDataDescriptions[i].type == Descriptor_MarkerSet)
+			{
+				// MarkerSet
+				sMarkerSetDescription* pMS = pDataDefs->arrDataDescriptions[i].Data.MarkerSetDescription;
+				printf("MarkerSet Name : %s\n", pMS->szName);
+				for (int i = 0; i < pMS->nMarkers; i++)
+					printf("%s\n", pMS->szMarkerNames[i]);
+
+			}
+			else if (pDataDefs->arrDataDescriptions[i].type == Descriptor_RigidBody)
+			{
+				// RigidBody
+				sRigidBodyDescription* pRB = pDataDefs->arrDataDescriptions[i].Data.RigidBodyDescription;
+				printf("RigidBody Name : %s\n", pRB->szName);
+				printf("RigidBody ID : %d\n", pRB->ID);
+				printf("RigidBody Parent ID : %d\n", pRB->parentID);
+				printf("Parent Offset : %3.2f,%3.2f,%3.2f\n", pRB->offsetx, pRB->offsety, pRB->offsetz);
+			}
+			else
+			{
+				printf("Unknown data type.");
+				// Unknown
+			}
 		}
 	}
+
+	// Ready to receive marker stream!
+	printf("\nClient is connected to server and listening for data...\n");
+
+	m_initialized = true;
+	
+	return ErrorCode_OK;
+}
+/* Destructor */
+OptiTrack::~OptiTrack()
+{
+	m_theClient->Uninitialize();
+
 }
 
 
-uint16_t SerialCommunicator::convertRpmToMessage(float rpm)
+// Establish a NatNet Client connection
+int OptiTrack::CreateClient(int iConnectionType)
 {
-	float rpmScaled = rpm / RPM_MAX;
-	return (uint16_t)(rpmScaled * (MESSAGE_MAX - POWER_OFF) + POWER_OFF);
-}
-
-uint16_t SerialCommunicator::convertRadSToMessage(float rad_per_second)
-{
-	float rpm = rad_per_second * 60 / (2 * M_PI);
-	return convertRpmToMessage(rpm);
-}
-
-float SerialCommunicator::convertMessageToRpm(uint16_t message)
-{
-	float msgShifted = ( (float) message - POWER_OFF);
-	float rpmNormalized = msgShifted / (MESSAGE_MAX - POWER_OFF);
-	return (rpmNormalized * RPM_MAX);
-}
-
-float SerialCommunicator::convertMessageToRadS(uint16_t message)
-{
-	float rpm = convertMessageToRpm(message);
-	return rpm * (2.0f * M_PI) / 60.0f;
-}
-
-void SerialCommunicator::enumerate_ports()
-{
-	vector<serial::PortInfo> devices_found = serial::list_ports();
-
-	vector<serial::PortInfo>::iterator iter = devices_found.begin();
-
-	while (iter != devices_found.end())
+	// release previous server
+	if (m_theClient)
 	{
-		serial::PortInfo device = *iter++;
-
-		printf("(%s, %s, %s)\n", device.port.c_str(), device.description.c_str(),
-			device.hardware_id.c_str());
+		m_theClient->Uninitialize();
+		delete m_theClient;
 	}
+
+	// create NatNet client
+	m_theClient = new NatNetClient(iConnectionType);
+
+	// set the callback handlers
+	m_theClient->SetVerbosityLevel(Verbosity_Warning);
+	m_theClient->SetMessageCallback(::messageCallback);
+	m_theClient->SetDataCallback(::dataCallback, this);	// this function will receive data from the server
+														// [optional] use old multicast group
+														//theClient->SetMulticastAddress("224.0.0.1");
+
+														// print version info
+	unsigned char ver[4];
+	m_theClient->NatNetVersion(ver);
+	printf("NatNet Sample Client (NatNet ver. %d.%d.%d.%d)\n", ver[0], ver[1], ver[2], ver[3]);
+
+	// Init Client and connect to NatNet server
+	// to use NatNet default port assignments
+	int retCode = m_theClient->Initialize(szMyIPAddress, szServerIPAddress);
+	// to use a different port for commands and/or data:
+	//int retCode = theClient->Initialize(szMyIPAddress, szServerIPAddress, MyServersCommandPort, MyServersDataPort);
+	if (retCode != ErrorCode_OK)
+	{
+		printf("Unable to connect to server.  Error code: %d. Exiting", retCode);
+		return ErrorCode_Internal;
+	}
+	else
+	{
+		// get # of analog samples per mocap frame of data
+		void* pResult;
+		int ret = 0;
+		int nBytes = 0;
+		ret = m_theClient->SendMessageAndWait("AnalogSamplesPerMocapFrame", &pResult, &nBytes);
+		if (ret == ErrorCode_OK)
+		{
+			analogSamplesPerMocapFrame = *((int*)pResult);
+			printf("Analog Samples Per Mocap Frame : %d", analogSamplesPerMocapFrame);
+		}
+
+		// print server info
+		sServerDescription ServerDescription;
+		memset(&ServerDescription, 0, sizeof(ServerDescription));
+		m_theClient->GetServerDescription(&ServerDescription);
+		if (!ServerDescription.HostPresent)
+		{
+			printf("Unable to connect to server. Host not present. Exiting.");
+			return 1;
+		}
+		printf("[SampleClient] Server application info:\n");
+		printf("Application: %s (ver. %d.%d.%d.%d)\n", ServerDescription.szHostApp, ServerDescription.HostAppVersion[0],
+			ServerDescription.HostAppVersion[1], ServerDescription.HostAppVersion[2], ServerDescription.HostAppVersion[3]);
+		printf("NatNet Version: %d.%d.%d.%d\n", ServerDescription.NatNetVersion[0], ServerDescription.NatNetVersion[1],
+			ServerDescription.NatNetVersion[2], ServerDescription.NatNetVersion[3]);
+		printf("Client IP:%s\n", szMyIPAddress);
+		printf("Server IP:%s\n", szServerIPAddress);
+		printf("Server Name:%s\n\n", ServerDescription.szHostComputerName);
+	}
+
+	return ErrorCode_OK;
+
 }
 
-void SerialCommunicator::print_usage()
+int OptiTrack::enterMenuMode()
 {
-	cerr << "Usage: test_serial {-e|<serial port address>} ";
-	cerr << "<baudrate> [test string]" << endl;
+	void* response;
+	int nBytes;
+	int c;
+	int iResult = ErrorCode_OK;
+	bool bExit = false;
+	while (c = _getch())
+	{
+		switch (c)
+		{
+		case 'q':
+			bExit = true;
+			break;
+		case 'r':
+			this->resetClient();
+			break;
+		case 'p':
+			sServerDescription ServerDescription;
+			memset(&ServerDescription, 0, sizeof(ServerDescription));
+			m_theClient->GetServerDescription(&ServerDescription);
+			if (!ServerDescription.HostPresent)
+			{
+				printf("Unable to connect to server. Host not present. Exiting.");
+				return 1;
+			}
+			break;
+		case 'f':
+		{
+			sFrameOfMocapData* pData = m_theClient->GetLastFrameOfData();
+			printf("Most Recent Frame: %d", pData->iFrame);
+		}
+		break;
+		case 'm':	                        // change to multicast
+			iConnectionType = ConnectionType_Multicast;
+			iResult = CreateClient(iConnectionType);
+			if (iResult == ErrorCode_OK)
+				printf("Client connection type changed to Multicast.\n\n");
+			else
+				printf("Error changing client connection type to Multicast.\n\n");
+			break;
+		case 'u':	                        // change to unicast
+			iConnectionType = ConnectionType_Unicast;
+			iResult = CreateClient(iConnectionType);
+			if (iResult == ErrorCode_OK)
+				printf("Client connection type changed to Unicast.\n\n");
+			else
+				printf("Error changing client connection type to Unicast.\n\n");
+			break;
+		case 'c':                          // connect
+			iResult = CreateClient(iConnectionType);
+			break;
+		case 'd':                          // disconnect
+										   // note: applies to unicast connections only - indicates to Motive to stop sending packets to that client endpoint
+			iResult = m_theClient->SendMessageAndWait("Disconnect", &response, &nBytes);
+			if (iResult == ErrorCode_OK)
+				printf("[SampleClient] Disconnected");
+			break;
+		default:
+			break;
+		}
+		if (bExit)
+			break;
+		// ADDED A SLEEP HERE
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
+	return iResult;
+}
+
+void __cdecl dataCallback(sFrameOfMocapData* data, void* pUserData)
+{
+	OptiTrack* optiTrackPointer = (OptiTrack*)pUserData;
+	optiTrackPointer->dataCallback(data);
+}
+
+
+// DataHandler receives data from the server
+void OptiTrack::dataCallback(sFrameOfMocapData* data)
+{
+	int i = 0;
+
+	// printf("FrameID : %d\n", data->iFrame);
+	//printf("Timestamp :  %3.2lf\n", data->fTimestamp);
+	//printf("Latency :  %3.2lf\n", data->fLatency);
+
+	// FrameOfMocapData params
+	bool bIsRecording = ((data->params & 0x01) != 0);
+	bool bTrackedModelsChanged = ((data->params & 0x02) != 0);
+	if (bIsRecording)
+		printf("RECORDING\n");
+	if (bTrackedModelsChanged)
+		printf("Models Changed.\n");
+
+	// get frame rate from host
+	void* pResult;
+	int ret = 0;
+	int nBytes = 0;
+	ret = m_theClient->SendMessageAndWait("FrameRate", &pResult, &nBytes);
+	if (ret == ErrorCode_OK)
+	{
+		fRate = *((float*)pResult);
+		if (fRate != 0.0f)
+			expectedFramePeriod = (1 / fRate);
+	}
+	if (expectedFramePeriod == 0.0)
+		printf("Error establishing Frame Rate.");
+
+	// xPos /= data->nLabeledMarkers;
+	// zPos /= data->nLabeledMarkers;
+
+	sDataDescriptions* pDataDefs = NULL;
+	int nBodies = m_theClient->GetDataDescriptions(&pDataDefs);
+
+	for (i = 0; i < pDataDefs->nDataDescriptions; i++)
+	{
+		if (pDataDefs->arrDataDescriptions[i].type == Descriptor_RigidBody)
+		{
+			sRigidBodyDescription* pRB = pDataDefs->arrDataDescriptions[i].Data.RigidBodyDescription;
+			if (!strcmp("Puck", pRB->szName)) // Puck
+			{
+				xPos = data->RigidBodies[i].x;
+				zPos = data->RigidBodies[i].z;
+
+				xVel = (xPos - xPosOld) * fRate;
+				zVel = (zPos - zPosOld) * fRate;
+
+				xPosOld = xPos;
+				zPosOld = zPos;
+			}
+			else if (!strcmp("Paddle", pRB->szName)) // Paddle
+			{
+				q0 = data->RigidBodies[i].qw;
+				q1 = data->RigidBodies[i].qx;
+				q2 = data->RigidBodies[i].qy;
+				q3 = data->RigidBodies[i].qz;
+				psi = atan2(-2 * (q1*q3 + q0*q2), pow(q0, 2) + pow(q1, 2) - pow(q2, 2) - pow(q3, 2));
+			}
+		}
+	}
+
+	//printf("\t%3.3f\t%3.3f\t%3.2f\t%3.2f\t%3.3f\n",
+	//	xPos, zPos, xVel, zVel, psi);
+
+	this->setPaddlePosition(psi);
+	this->setBallPosition(xPos, zPos);
+	this->setBallVelocity(xVel, zVel);
+}
+
+// MessageHandler receives NatNet error/debug messages
+void __cdecl messageCallback(int msgType, char* msg)
+{
+	printf("\n%s\n", msg);
+}
+
+void OptiTrack::resetClient()
+{
+	int iSuccess;
+
+	printf("\n\nre-setting Client\n\n.");
+
+	iSuccess = m_theClient->Uninitialize();
+	if (iSuccess != 0)
+		printf("error un-initting Client\n");
+
+	iSuccess = m_theClient->Initialize(szMyIPAddress, szServerIPAddress);
+	if (iSuccess != 0)
+		printf("error re-initting Client\n");
+
+
+}
+
+// SHARE DATA VARIABLES
+double OptiTrack::getPaddlePosition()
+{
+	std::lock_guard<std::mutex> guard(m_mutexPaddlePos);
+	return m_paddlePositionOptiTrack;
+}
+
+void OptiTrack::setPaddlePosition(const double& paddlePos)
+{
+	std::lock_guard<std::mutex> guard(m_mutexPaddlePos);
+	m_paddlePositionOptiTrack = paddlePos;
+}
+
+Vector2d OptiTrack::getBallPosition()
+{
+	std::lock_guard<std::mutex> guard(m_mutexBallPos);
+	return m_ballPosOptiTrack;
+}
+
+void OptiTrack::setBallPosition(const double& x, const double& z)
+{
+	std::lock_guard<std::mutex> guard(m_mutexBallPos);
+	m_ballPosOptiTrack(0) = x;
+	m_ballPosOptiTrack(1) = z;
+}
+
+Vector2d OptiTrack::getBallVelocity()
+{
+	std::lock_guard<std::mutex> guard(m_mutexBallVel);
+	return m_ballVelOptiTrack;
+}
+
+void OptiTrack::setBallVelocity(const double& xp, const double& zp)
+{
+	std::lock_guard<std::mutex> guard(m_mutexBallVel);
+	m_ballVelOptiTrack(0) = xp;
+	m_ballVelOptiTrack(1) = zp;
 }
