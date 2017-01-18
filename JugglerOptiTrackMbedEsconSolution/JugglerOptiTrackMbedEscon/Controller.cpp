@@ -25,18 +25,19 @@ Controller::Controller() :
 	sigmapRef = qpRef(1);
 
 	setReferenceEnergy(0.0);
-	H = 1 / 2 * pow(0.0, 2) + g*sin(beta)*0.0;
-	Href = getReferenceEnergy();
-	Htilde = H - Href;
+	//H = 1 / 2 * pow(0.0, 2) + g*sin(beta)*0.0;
+	//Href = getReferenceEnergy();
+	//Htilde = H - Href;
 	//reflection gain of mirror law 0.075, // restoring of the energy href 0.01
-	this->setGains(0.075, 0.1, 0.05, 0.05);
+	//this->setGains(0.075, 0.1, 0.05, 0.05);
 
 	/* Following set of gains seems to work alright
 	this->setGains(0.05, 0.001, 0.1, 0.05) // also k1 = 1e-4
 	*/
 
 	// For heavier puck
-	this->setGains(0.3, 0.0, 0.9, 0.5);
+	this->setGains(0.285, 0.405, 1.051, 0.023);
+	this->setDefaultGains(0.285, 0.405, 1.051, 0.023);
 }
 
 Controller::~Controller()
@@ -85,20 +86,39 @@ int Controller::initialize(OptiTrack* optiTrackPointer)
 	}
 }
 
-void Controller::getGains(double* gainVert, double* gainVerticalDer, double* gainHoriz, double* gainHorizDer)
+
+void Controller::getDefaultGains(double* gainReflection, double* gainEnergy, double* gainHoriz, double* gainHorizDer)
 {
 	std::lock_guard<std::mutex> guard(m_mutexGains);
-	*gainVert = kappa0;
-	*gainVerticalDer = kappa1;
+	*gainReflection = kappa0Default;
+	*gainEnergy = kappa1Default;
+	*gainHoriz = kappa00Default;
+	*gainHorizDer = kappa01Default;
+}
+
+void Controller::setDefaultGains(const double& gainReflection, const double& gainEnergy, const double& gainHoriz, const double& gainHorizDer)
+{
+	std::lock_guard<std::mutex> guard(m_mutexGains);
+	kappa0Default = gainReflection;
+	kappa1Default = gainEnergy;
+	kappa00Default = gainHoriz;
+	kappa01Default = gainHorizDer;
+}
+
+void Controller::getGains(double* gainReflection, double* gainEnergy, double* gainHoriz, double* gainHorizDer)
+{
+	std::lock_guard<std::mutex> guard(m_mutexGains);
+	*gainReflection = kappa0;
+	*gainEnergy = kappa1;
 	*gainHoriz = kappa00;
 	*gainHorizDer = kappa01;
 }
 
-void Controller::setGains(const double& gainVert, const double& gainVerticalDer, const double& gainHoriz, const double& gainHorizDer)
+void Controller::setGains(const double& gainReflection, const double& gainEnergy, const double& gainHoriz, const double& gainHorizDer)
 {
 	std::lock_guard<std::mutex> guard(m_mutexGains);
-	kappa0 = gainVert;
-	kappa1 = gainVerticalDer;
+	kappa0 = gainReflection;
+	kappa1 = gainEnergy;
 	kappa00 = gainHoriz;
 	kappa01 = gainHorizDer;
 }
@@ -176,7 +196,7 @@ double Controller::computeDesiredPaddlePosition()
 	// Control horizontally
 	double rhoBar = rubberLength / 2; //in the rubber frame
 	double rhoRef = sigmaRef*cos(psiRef);
-	double rhopRef = sigmapRef*cos(psiRef) - sigmapRef*psipRef*sin(psiRef);
+	double rhopRef = sigmapRef*cos(psiRef) - sigmaRef*psipRef*sin(psiRef);
 
 	std::lock_guard<std::mutex> guard(m_mutexGains);
 	
@@ -192,7 +212,7 @@ double Controller::computeDesiredPaddleVelocity()
 
 void Controller::controlArmThread()
 {
-	double gaink0, gaink1, gaink00, gaink01;
+	//double gaink0, gaink1, gaink00, gaink01;
 
 	while (true)
 	{
@@ -235,12 +255,12 @@ void Controller::controlArmThread()
 					sigmaRef, psiRef, m_desiredPaddlePositionRad, m_desiredPaddleVelocityRad);
 				//printf("H = %3.2f, \t Href = %3.2f \t Htilde = %3.2f \t \n", H, Href, Htilde);
 			}
-			if (m_controlThreadCounter % LOOPCOUNTS_INT == 150)
+			/*if (m_controlThreadCounter % LOOPCOUNTS_INT == 150)
 			{
 				this->getGains(&gaink0, &gaink1, &gaink00, &gaink01);
 				printf("k0 = %4.3f, k1 = %4.3f, k00 = %4.3f, k01 = %4.3f\n",
 					gaink0, gaink1, gaink00, gaink01);
-			}
+			}*/
 		}
 		//double incline = computeIncline();
 		//printf("The inline is %3.2f degrees.\n", incline);

@@ -41,8 +41,10 @@ public:
 
 	int initialize(OptiTrack* optiTrackPointer);
 	// double computeIncline();
-	void getGains(double* gainVert, double* gainVerticalDer, double* gainHoriz, double* gainHorizDer );
-	void setGains(const double& gainVert, const double& gainVerticalDer, const double& gainHoriz, const double& gainHorizDer);
+	void getGains(double* gainReflection, double* gainEnergy, double* gainHoriz, double* gainHorizDer );
+	void setGains(const double& gainReflection, const double& gainEnergy, const double& gainHoriz, const double& gainHorizDer);
+	void getDefaultGains(double* gainReflection, double* gainEnergy, double* gainHoriz, double* gainHorizDer);
+	void setDefaultGains(const double& gainReflection, const double& gainVerticalDer, const double& gainHoriz, const double& gainHorizDer);
 
 protected:
 	double getReferenceEnergy();
@@ -99,6 +101,10 @@ private:
 	double kappa00;
 	double kappa01;
 
+	double kappa0Default;
+	double kappa1Default;
+	double kappa00Default;
+	double kappa01Default;
 
 	double m_currentPaddlePositionRad;
 	double m_desiredPaddlePositionRad;
@@ -109,7 +115,7 @@ private:
 	
 	std::mutex m_mutexPaddlePos, m_mutexBallPos, m_mutexBallVel;
 
-	double m_positionGain = 250;
+	double m_positionGain = 600;
 
 	// DONT TOUCH THOSE OTHER THAN BY GET SET FUNCTIONS
 	Vector2d m_ballPosOptiTrack;
