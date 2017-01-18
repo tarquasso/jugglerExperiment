@@ -3,11 +3,14 @@
 
 #define PUCK_NAME "PuckHeavy"
 //#define PUCKNAME "Puck"
+#define FILTER_CUT_OFF_FREQUENCY 126
+#define FILTER_SAMPLE_PERIOD 0.083333
 
 #include "NatNetTypes.h"
 #include "NatNetClient.h"
 #include <mutex>
 #include <Eigen/Dense>
+#include "LowPassFilter.h"
 using namespace Eigen;
 
 class OptiTrack
@@ -56,7 +59,9 @@ private:
 	double zPosOld = 0.0;
 
 	double xVel = 0.0;
+	LowPassFilter xVelLowPassFilter;
 	double zVel = 0.0;
+	LowPassFilter zVelLowPassFilter;
 
 	double q0 = 1;
 	double q1 = 0;

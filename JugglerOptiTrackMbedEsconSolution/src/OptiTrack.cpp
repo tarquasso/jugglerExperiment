@@ -8,7 +8,9 @@
 
 /* Constructor */
 OptiTrack::OptiTrack():
-	m_initialized(false)
+	m_initialized(false),
+	xVelLowPassFilter(FILTER_CUT_OFF_FREQUENCY ,FILTER_SAMPLE_PERIOD),
+	zVelLowPassFilter(FILTER_CUT_OFF_FREQUENCY , FILTER_SAMPLE_PERIOD)
 {
 }
 
@@ -294,8 +296,11 @@ void OptiTrack::dataCallback(sFrameOfMocapData* data)
 				xPos = data->RigidBodies[i].x;
 				zPos = data->RigidBodies[i].z;
 
-				xVel = (xPos - xPosOld) * fRate;
-				zVel = (zPos - zPosOld) * fRate;
+				xVel = xVelLowPassFilter.calculate(xPos);
+				zVel = zVelLowPassFilter.calculate(zPos);
+
+				//xVel = (xPos - xPosOld) * fRate;
+				//zVel = (zPos - zPosOld) * fRate;
 
 				xPosOld = xPos;
 				zPosOld = zPos;
@@ -311,8 +316,8 @@ void OptiTrack::dataCallback(sFrameOfMocapData* data)
 		}
 	}
 
-	//printf("\t%3.3f\t%3.3f\t%3.2f\t%3.2f\t%3.3f\n",
-	//	xPos, zPos, xVel, zVel, psi);
+	printf("\t%3.3f\t%3.3f\t%3.2f\t%3.2f\t%3.3f\n",
+		xPos, zPos, xVel, zVel, psi);
 
 	this->setPaddlePosition(psi);
 	this->setBallPosition(xPos, zPos);

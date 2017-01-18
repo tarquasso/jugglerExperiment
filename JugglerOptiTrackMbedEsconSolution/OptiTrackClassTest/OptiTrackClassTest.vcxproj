@@ -158,10 +158,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\LowPassFilter.cpp" />
     <ClCompile Include="..\src\OptiTrack.cpp" />
     <ClCompile Include="mainOptiTrackClassTest.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\include\LowPassFilter.h" />
     <ClInclude Include="..\include\NatNetClient.h" />
     <ClInclude Include="..\include\NatNetTypes.h" />
     <ClInclude Include="..\include\OptiTrack.h" />

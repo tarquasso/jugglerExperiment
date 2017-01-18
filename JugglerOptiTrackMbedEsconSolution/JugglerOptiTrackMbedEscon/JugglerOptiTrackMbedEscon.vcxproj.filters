@@ -48,6 +48,9 @@
     <ClInclude Include="..\include\OptiTrack.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\LowPassFilter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Controller.cpp">
@@ -69,6 +72,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="mainJugglerOptiTrackMbedEscon.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\LowPassFilter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
