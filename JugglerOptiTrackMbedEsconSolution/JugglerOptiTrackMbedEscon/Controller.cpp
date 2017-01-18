@@ -51,7 +51,7 @@ Controller::Controller() :
 
 Controller::~Controller()
 {
-
+	delete m_serialComm;
 }
 
 
