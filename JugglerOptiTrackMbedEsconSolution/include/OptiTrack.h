@@ -1,6 +1,9 @@
 #ifndef OPTITRACK_H
 #define OPTITRACK_H
 
+#define PUCK_NAME "PuckHeavy"
+//#define PUCKNAME "Puck"
+
 #include "NatNetTypes.h"
 #include "NatNetClient.h"
 #include <mutex>

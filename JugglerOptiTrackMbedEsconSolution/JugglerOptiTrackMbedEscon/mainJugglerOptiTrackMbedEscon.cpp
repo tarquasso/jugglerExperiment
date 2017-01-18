@@ -37,6 +37,5 @@ int main()
 		return 1;
 	}
 
-
 	return ErrorCode_OK;
 }

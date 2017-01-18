@@ -289,7 +289,7 @@ void OptiTrack::dataCallback(sFrameOfMocapData* data)
 		if (pDataDefs->arrDataDescriptions[i].type == Descriptor_RigidBody)
 		{
 			sRigidBodyDescription* pRB = pDataDefs->arrDataDescriptions[i].Data.RigidBodyDescription;
-			if (!strcmp("Puck", pRB->szName)) // Puck
+			if (!strcmp(PUCK_NAME, pRB->szName)) // Puck
 			{
 				xPos = data->RigidBodies[i].x;
 				zPos = data->RigidBodies[i].z;
@@ -311,8 +311,8 @@ void OptiTrack::dataCallback(sFrameOfMocapData* data)
 		}
 	}
 
-	/*printf("\t%3.3f\t%3.3f\t%3.2f\t%3.2f\t%3.3f\n",
-		xPos, zPos, xVel, zVel, psi);*/
+	//printf("\t%3.3f\t%3.3f\t%3.2f\t%3.2f\t%3.3f\n",
+	//	xPos, zPos, xVel, zVel, psi);
 
 	this->setPaddlePosition(psi);
 	this->setBallPosition(xPos, zPos);

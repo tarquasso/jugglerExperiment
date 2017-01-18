@@ -40,6 +40,7 @@ public:
 	~Controller();
 
 	int initialize(OptiTrack* optiTrackPointer);
+	// double computeIncline();
 
 protected:
 	double getReferenceEnergy();
