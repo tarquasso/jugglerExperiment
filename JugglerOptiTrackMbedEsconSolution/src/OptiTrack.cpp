@@ -95,7 +95,7 @@ int OptiTrack::initialize()
 OptiTrack::~OptiTrack()
 {
 	m_theClient->Uninitialize();
-
+	delete m_theClient;
 }
 
 

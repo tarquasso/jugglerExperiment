@@ -28,30 +28,20 @@ Controller::Controller() :
 	H = 1 / 2 * pow(0.0, 2) + g*sin(beta)*0.0;
 	Href = getReferenceEnergy();
 	Htilde = H - Href;
-
-	kappa0 = 0.075; //reflection gain of mirror law 0.075
-	kappa1 = 0.1; // restoring of the energy href 0.01
-	kappa00 = 0.05;
-	kappa01 = 0.05;
+	//reflection gain of mirror law 0.075, // restoring of the energy href 0.01
+	this->setGains(0.075, 0.1, 0.05, 0.05);
 
 	/* Following set of gains seems to work alright
-	k0 = 0.05;
-	k1 = 0.001;	also k1 = 1e-4
-	k00 = 0.1;
-	k01 = 0.05;
+	this->setGains(0.05, 0.001, 0.1, 0.05) // also k1 = 1e-4
 	*/
 
 	// For heavier puck
-	kappa0 = 0.3;
-	kappa1 = 0.0;
-	kappa00 = 0.9; //horizontal position gain
-	kappa01 = 0.5; //horizontal velocity gain
-
+	this->setGains(0.3, 0.0, 0.9, 0.5);
 }
 
 Controller::~Controller()
 {
-	delte m_serialComm;
+	delete m_serialComm;
 }
 
 
@@ -94,6 +84,25 @@ int Controller::initialize(OptiTrack* optiTrackPointer)
 		threadObj.detach();
 	}
 }
+
+void Controller::getGains(double* gainVert, double* gainVerticalDer, double* gainHoriz, double* gainHorizDer)
+{
+	std::lock_guard<std::mutex> guard(m_mutexGains);
+	*gainVert = kappa0;
+	*gainVerticalDer = kappa1;
+	*gainHoriz = kappa00;
+	*gainHorizDer = kappa01;
+}
+
+void Controller::setGains(const double& gainVert, const double& gainVerticalDer, const double& gainHoriz, const double& gainHorizDer)
+{
+	std::lock_guard<std::mutex> guard(m_mutexGains);
+	kappa0 = gainVert;
+	kappa1 = gainVerticalDer;
+	kappa00 = gainHoriz;
+	kappa01 = gainHorizDer;
+}
+
 
 double Controller::getReferenceEnergy()
 {
@@ -169,6 +178,8 @@ double Controller::computeDesiredPaddlePosition()
 	double rhoRef = sigmaRef*cos(psiRef);
 	double rhopRef = sigmapRef*cos(psiRef) - sigmapRef*psipRef*sin(psiRef);
 
+	std::lock_guard<std::mutex> guard(m_mutexGains);
+	
 	return  -(kappa0 + kappa1*Htilde)*psiRef - ( kappa00*(rhoRef - rhoBar) + kappa01*rhopRef);
 }
 
@@ -181,6 +192,8 @@ double Controller::computeDesiredPaddleVelocity()
 
 void Controller::controlArmThread()
 {
+	double gaink0, gaink1, gaink00, gaink01;
+
 	while (true)
 	{
 		// Ensure it was initialized!
@@ -214,13 +227,21 @@ void Controller::controlArmThread()
 		this->m_serialComm->sendMotorRadPerSec((float)m_desiredPaddleVelocityRad);
 		m_controlThreadCounter++;
 		std::this_thread::sleep_for(std::chrono::milliseconds(LOOP_PERIOD_MS));
-		if (m_controlThreadCounter % LOOPCOUNTS_INT == 0)
+		if (m_debug)
 		{
-			printf("sigmaRef = %3.2f, \t psiRef = %3.2f, \t psiDes = %3.2f, \t psipDes = %3.2f\n",
-				sigmaRef, psiRef, m_desiredPaddlePositionRad, m_desiredPaddleVelocityRad);
-			//printf("H = %3.2f, \t Href = %3.2f \t Htilde = %3.2f \t \n", H, Href, Htilde);
+			if (m_controlThreadCounter % LOOPCOUNTS_INT == 0)
+			{
+				printf("sigRef= %3.2f, psiRef= %3.2f, psiDes= %3.2f, psipDes= %3.2f\n",
+					sigmaRef, psiRef, m_desiredPaddlePositionRad, m_desiredPaddleVelocityRad);
+				//printf("H = %3.2f, \t Href = %3.2f \t Htilde = %3.2f \t \n", H, Href, Htilde);
+			}
+			if (m_controlThreadCounter % LOOPCOUNTS_INT == 150)
+			{
+				this->getGains(&gaink0, &gaink1, &gaink00, &gaink01);
+				printf("k0 = %4.3f, k1 = %4.3f, k00 = %4.3f, k01 = %4.3f\n",
+					gaink0, gaink1, gaink00, gaink01);
+			}
 		}
-
 		//double incline = computeIncline();
 		//printf("The inline is %3.2f degrees.\n", incline);
 	}

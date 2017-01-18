@@ -41,6 +41,8 @@ public:
 
 	int initialize(OptiTrack* optiTrackPointer);
 	// double computeIncline();
+	void getGains(double* gainVert, double* gainVerticalDer, double* gainHoriz, double* gainHorizDer );
+	void setGains(const double& gainVert, const double& gainVerticalDer, const double& gainHoriz, const double& gainHorizDer);
 
 protected:
 	double getReferenceEnergy();
@@ -117,6 +119,11 @@ private:
 	
 	SerialCommunicator* m_serialComm;
 	OptiTrack* m_optiTrackPointer;
+
+	std::mutex m_mutexGains;
+
+	bool m_debug = false;
+
 };
 
 #endif //CONTROLLER_H
