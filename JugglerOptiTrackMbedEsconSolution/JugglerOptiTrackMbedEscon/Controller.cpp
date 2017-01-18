@@ -115,18 +115,33 @@ void Controller::computeJacobianInverse()
 	double ballDistanceSquaredFromHinge = pow(ox - x, 2) + pow(oz - z, 2);
 	double sigma = sqrt(-pow(r, 2) + ballDistanceSquaredFromHinge);
 
+	/*Old Jinv
 	JRigidInv(0, 0) = (r*(x - ox) + (z - oz)*sigma) / ballDistanceSquaredFromHinge / sigma;
 	JRigidInv(0, 1) = (r*(z - oz) + (ox - x)*sigma) / ballDistanceSquaredFromHinge / sigma;
 	JRigidInv(1, 0) = (ox - x) / sigma;
 	JRigidInv(1, 1) = (oz - z) / sigma;
+	*/
+
+	JRigidInv(0, 0) = (-r*(ox - x) + sigma*(oz - z)) / -ballDistanceSquaredFromHinge / sigma;
+	JRigidInv(0, 1) = (-r*(oz - z) - sigma*(ox - x)) / -ballDistanceSquaredFromHinge / sigma;
+	JRigidInv(1, 0) = (ox - x) / -sigma;
+	JRigidInv(1, 1) = (oz - z) / -sigma;
 }
 
 
 void Controller::updateReferencePosition()
 {
-	sigmaRef = -sqrt(-pow(r, 2) + pow(ox - x, 2) + pow(oz - z, 2));
+	double ballDistanceSquaredFromHinge = pow(ox - x, 2) + pow(oz - z, 2);
+
+	sigmaRef = -sqrt( -pow(r, 2) + ballDistanceSquaredFromHinge );
+
+	/* Old calculation 
 	psiRef = atan2(-(oz - z)*sigmaRef + r*(ox - x), (ox - x)*sigmaRef - r*(oz - z)) - M_PI;
 	psiRef = remainder(-psiRef, (2 * M_PI));
+	*/
+	
+	psiRef = atan2( sigmaRef*(oz - z) - r*(ox - x), -sigmaRef*(ox - x) - r*(oz -z) );
+
 }
 
 
@@ -215,7 +230,10 @@ void Controller::controlArmThread()
 	}
 }
 
-
+double sgn(double d) {
+	double eps = 1e-16;
+	return d<-eps ? -1 : d>eps;
+}
 
 //double Controller::computeIncline()
 //{

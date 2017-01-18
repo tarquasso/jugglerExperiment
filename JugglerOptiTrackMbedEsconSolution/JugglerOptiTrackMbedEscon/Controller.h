@@ -61,7 +61,7 @@ protected:
 private:
 	bool m_initialized;
 
-	double r = 0.086;	// Radius of the ball
+	double r = 0.086/2;	// Radius of the ball
 	double ox = 0.275;	// Offset from the world frame to the paddle frame in the x-direction
 	double oz = -0.256;		// Offset from the world frame to the paddle frame in the z-direction
 
