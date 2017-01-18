@@ -35,9 +35,13 @@ Controller::Controller() :
 	this->setGains(0.05, 0.001, 0.1, 0.05) // also k1 = 1e-4
 	*/
 
-	// For heavier puck
-	this->setGains(0.285, 0.405, 1.051, 0.023);
-	this->setDefaultGains(0.285, 0.405, 1.051, 0.023);
+	double k0 = 0.285;
+	double k1 = 0.405;
+	double k00 = 1.051;
+	double k01 = 0.023;
+	// For heavier puck	
+	this->setDefaultGains(k0, k1, k00, k01);
+	this->setGains(k0, k1, k00, k01);
 }
 
 Controller::~Controller()
