@@ -46,6 +46,7 @@ protected:
 	double getReferenceEnergy();
 	void setReferenceEnergy(double referenceEnergy);
 
+	void computeSigmaRef();
 	void updateReferencePosition();
 	void updateReferenceVelocity();
 
@@ -61,13 +62,18 @@ protected:
 private:
 	bool m_initialized;
 
-	double r = 0.086/2;	// Radius of the ball
-	double ox = 0.275;	// Offset from the world frame to the paddle frame in the x-direction
-	double oz = -0.256;		// Offset from the world frame to the paddle frame in the z-direction
+	double betaDeg = 15.6;
+	double r = 0.086/2;	// Radius of the ball 
+	double ox = 0.3;	// Offset from the world frame to the paddle frame in the x-direction
+	double oz = -0.248;	// Offset from the world frame to the paddle frame in the z-direction
+	double rx = 0.029; // offset from the motor frame to the rubber frame in the x-direction
+	double rz = 0.02075; // offset from the motor frame to the rubber frame in the z-direction
+	double rubberLength = 0.542;
 
-	double x, z, xp, zp;
+	double x, z, xp, zp; //ball states
 
 	double psiRef;
+	double ballDistanceSquaredFromHinge;
 	double sigmaRef;
 
 	double psipRef;
@@ -84,7 +90,7 @@ private:
 	double Htilde;	// Error in vertical energy of the ball
 
 	double g = 9.81;	// Gravitational acceleration
-	double beta = PI / 180 * 36;		// Inclination angle of the table
+	double beta = PI / 180 * betaDeg;		// Inclination angle of the table
 
 	double kappa0;
 	double kappa1;

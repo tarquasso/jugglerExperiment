@@ -42,16 +42,16 @@ Controller::Controller() :
 	*/
 
 	// For heavier puck
-	kappa0 = 0.45;
-	kappa1 = 0.25;
-	kappa00 = 0.2;
-	kappa01 = 0.1;
+	kappa0 = 0.3;
+	kappa1 = 0.0;
+	kappa00 = 0.9; //horizontal position gain
+	kappa01 = 0.5; //horizontal velocity gain
 
 }
 
 Controller::~Controller()
 {
-
+	delte m_serialComm;
 }
 
 
@@ -110,38 +110,20 @@ double Controller::computeVerticalEnergy()
 	return 1 / 2 * pow(zp, 2) + g*sin(beta)*z;
 }
 
-void Controller::computeJacobianInverse()
+void Controller::computeSigmaRef()
 {
-	double ballDistanceSquaredFromHinge = pow(ox - x, 2) + pow(oz - z, 2);
-	double sigma = sqrt(-pow(r, 2) + ballDistanceSquaredFromHinge);
-
-	/*Old Jinv
-	JRigidInv(0, 0) = (r*(x - ox) + (z - oz)*sigma) / ballDistanceSquaredFromHinge / sigma;
-	JRigidInv(0, 1) = (r*(z - oz) + (ox - x)*sigma) / ballDistanceSquaredFromHinge / sigma;
-	JRigidInv(1, 0) = (ox - x) / sigma;
-	JRigidInv(1, 1) = (oz - z) / sigma;
-	*/
-
-	JRigidInv(0, 0) = (-r*(ox - x) + sigma*(oz - z)) / -ballDistanceSquaredFromHinge / sigma;
-	JRigidInv(0, 1) = (-r*(oz - z) - sigma*(ox - x)) / -ballDistanceSquaredFromHinge / sigma;
-	JRigidInv(1, 0) = (ox - x) / -sigma;
-	JRigidInv(1, 1) = (oz - z) / -sigma;
+	ballDistanceSquaredFromHinge = pow(ox - x, 2) + pow(oz - z, 2);
+	sigmaRef = sqrt(-pow(r + rz, 2) + ballDistanceSquaredFromHinge) - rx;
 }
-
 
 void Controller::updateReferencePosition()
 {
-	double ballDistanceSquaredFromHinge = pow(ox - x, 2) + pow(oz - z, 2);
-
-	sigmaRef = -sqrt( -pow(r, 2) + ballDistanceSquaredFromHinge );
-
-	/* Old calculation 
+	/* Old calculation
 	psiRef = atan2(-(oz - z)*sigmaRef + r*(ox - x), (ox - x)*sigmaRef - r*(oz - z)) - M_PI;
 	psiRef = remainder(-psiRef, (2 * M_PI));
 	*/
-	
-	psiRef = atan2( sigmaRef*(oz - z) - r*(ox - x), -sigmaRef*(ox - x) - r*(oz -z) );
-
+	//psiRef = atan2( (r+rz)*(ox - x) + (sigmaRef+rx)*(oz-z), (sigmaRef+rx)*(ox-x) - (r+rz)*(oz-z) );
+	psiRef = atan2((r + rz)*(ox - x) + (sigmaRef + rx)*(oz - z), (sigmaRef + rx)*(ox - x) - (r + rz)*(oz - z));
 }
 
 
@@ -155,25 +137,39 @@ void Controller::updateReferenceVelocity()
 	sigmapRef = refVel(1);
 }
 
+void Controller::computeJacobianInverse()
+{
+	/*Old Jinv
+	JRigidInv(0, 0) = (r*(x - ox) + (z - oz)*sigmaRef) / ballDistanceSquaredFromHinge / sigmaRef;
+	JRigidInv(0, 1) = (r*(z - oz) + (ox - x)*sigmaRef) / ballDistanceSquaredFromHinge / sigmaRef;
+	JRigidInv(1, 0) = (ox - x) / sigmaRef;
+	JRigidInv(1, 1) = (oz - z) / sigmaRef;
+	*/
+
+	JRigidInv(0, 0) = ((r + rz)*(ox - x) + (sigmaRef + rx)*(oz - z)) / ballDistanceSquaredFromHinge / (sigmaRef + rx);
+	JRigidInv(0, 1) = ((r + rz)*(oz - z) - (sigmaRef + rx)*(ox - x)) / ballDistanceSquaredFromHinge / (sigmaRef + rx);
+	JRigidInv(1, 0) = -(ox - x) / (sigmaRef + rx);
+	JRigidInv(1, 1) = -(oz - z) / (sigmaRef + rx);
+}
 
 
 double Controller::computeDesiredPaddlePosition()
 {
-	double rhoBar = ox;
-	double rhoRef = 0.0;
-	double rhopRef = 0.0;
-
+	// control vertically
 	H = computeVerticalEnergy();
-	// Htilde = H - Href;
+	//Htilde = H - Href;
 	Htilde = Href - H;
 
+	computeSigmaRef();
 	updateReferencePosition();
 	updateReferenceVelocity();
 
-	rhoRef = sigmaRef*cos(psiRef);
-	rhopRef = sigmapRef*cos(psiRef) - sigmapRef*psipRef*sin(psiRef);
+	// Control horizontally
+	double rhoBar = rubberLength / 2; //in the rubber frame
+	double rhoRef = sigmaRef*cos(psiRef);
+	double rhopRef = sigmapRef*cos(psiRef) - sigmapRef*psipRef*sin(psiRef);
 
-	return  -(kappa0 + kappa1*Htilde)*psiRef + kappa00*(rhoRef - rhoBar) + kappa01*rhopRef;
+	return  -(kappa0 + kappa1*Htilde)*psiRef - ( kappa00*(rhoRef - rhoBar) + kappa01*rhopRef);
 }
 
 
