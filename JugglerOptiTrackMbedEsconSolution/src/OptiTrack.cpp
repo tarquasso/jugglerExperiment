@@ -98,6 +98,9 @@ OptiTrack::~OptiTrack()
 {
 	m_theClient->Uninitialize();
 	delete m_theClient;
+
+	if(fp)
+		fclose(fp);
 }
 
 
@@ -230,6 +233,8 @@ int OptiTrack::enterMenuMode()
 			if (iResult == ErrorCode_OK)
 				printf("[SampleClient] Disconnected");
 			break;
+		case CTRL('r'):
+			writeDataToFile();
 		default:
 			break;
 		}
@@ -316,6 +321,9 @@ void OptiTrack::dataCallback(sFrameOfMocapData* data)
 		}
 	}
 
+	if(fp) // Write data only if the file stream is open
+		_WriteFrame(data);
+
 	/*printf("\t%3.3f\t%3.3f\t%3.2f\t%3.2f\t%3.3f\n",
 		xPos, zPos, xVel, zVel, psi);*/
 
@@ -384,4 +392,40 @@ void OptiTrack::setBallVelocity(const double& xp, const double& zp)
 	std::lock_guard<std::mutex> guard(m_mutexBallVel);
 	m_ballVelOptiTrack(0) = xp;
 	m_ballVelOptiTrack(1) = zp;
+}
+
+void OptiTrack::writeDataToFile()
+{
+	GetCurrentDirectory(MAX_PATH, szFolder);
+	sprintf(szFile, "%sClient-output.pts", szFolder);
+	fp = fopen(szFile, "w");
+	if (!fp)
+	{
+		printf("error opening output file %s.  Exiting.", szFile);
+		exit(1);
+	}
+	else
+		_WriteHeader();
+}
+
+void OptiTrack::_WriteFrame(sFrameOfMocapData* data)
+{
+	if (writeCount > nSamplesToWait)
+	{
+		fprintf(fp, "%d", data->iFrame);
+
+		sDataDescriptions* pDataDefs = NULL;
+		int nBodies = m_theClient->GetDataDescriptions(&pDataDefs);
+
+		fprintf(fp, "\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f", xPos, zPos, xVel, zVel, psi);
+		fprintf(fp, "\n");
+	}
+	writeCount++;
+}
+
+void OptiTrack::_WriteHeader()
+{
+	fprintf(fp, "%s\t%s\t%s\t%s\t%s\t%s", "Frame     ", "x     ", "z    ", "xd      ", "zd     ", "psi");
+	fprintf(fp, "\n");
+
 }

@@ -74,6 +74,8 @@ int overallMenuMode(OptiTrack* optiTrackPointer, Controller* controllerPointer)
 			controllerPointer->getDefaultGains(&k0, &k1, &k00, &k01);
 			gainsChanged = true;
 			break;
+		case CTRL('r'):
+			optiTrackPointer->writeDataToFile();
 		case 'q':
 			bExit = true;
 			break;

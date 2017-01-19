@@ -1,16 +1,24 @@
 #ifndef OPTITRACK_H
 #define OPTITRACK_H
 
+#ifndef CTRL
+#define CTRL(c) ((c) & 037)
+#endif
+
+#pragma warning(disable:4996)
+
+#define M_PI 3.14159265358979323846f
 #define PUCK_NAME "PuckHeavy"
 //#define PUCKNAME "Puck"
-#define FILTER_CUT_OFF_FREQUENCY 126
-#define FILTER_SAMPLE_PERIOD 0.0083333
+#define FILTER_CUT_OFF_FREQUENCY 62.83
+#define FILTER_SAMPLE_PERIOD 0.0083333 // = 1/120
 
 #include "NatNetTypes.h"
 #include "NatNetClient.h"
 #include <mutex>
 #include <Eigen/Dense>
 #include "LowPassFilter.h"
+#include <winsock2.h>
 using namespace Eigen;
 
 class OptiTrack
@@ -25,6 +33,8 @@ public:
 	double getPaddlePosition();
 	Vector2d getBallPosition();
 	Vector2d getBallVelocity();
+
+	void writeDataToFile();
 
 	void dataCallback(sFrameOfMocapData* data);
 
@@ -49,6 +59,17 @@ private:
 
 	int analogSamplesPerMocapFrame = 0;
 
+	// start - Writing to File
+	FILE* fp;
+	char szFile[MAX_PATH];
+	wchar_t szFolder[MAX_PATH];
+	int writeCount = 0;
+	int nSamplesToWait = (int) floor(2 * (1/ FILTER_SAMPLE_PERIOD) * (1 / (FILTER_CUT_OFF_FREQUENCY / 2 / M_PI)));
+	void _WriteHeader();
+	void _WriteFrame(sFrameOfMocapData* data);
+
+	// end - Writing to File
+	
 	double fRate = 0.0;
 	double expectedFramePeriod = 0.0;
 
