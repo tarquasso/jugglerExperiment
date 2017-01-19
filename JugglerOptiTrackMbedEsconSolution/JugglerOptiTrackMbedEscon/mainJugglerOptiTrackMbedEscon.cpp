@@ -76,6 +76,10 @@ int overallMenuMode(OptiTrack* optiTrackPointer, Controller* controllerPointer)
 			break;
 		case CTRL('r'):
 			optiTrackPointer->writeDataToFile();
+			break;
+		case CTRL('s'):
+			optiTrackPointer->stopWriteDataToFile();
+			break;
 		case 'q':
 			bExit = true;
 			break;

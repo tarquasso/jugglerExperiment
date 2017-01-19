@@ -96,6 +96,7 @@ int Controller::initialize(OptiTrack* optiTrackPointer)
 		std::cout << "Detaching Control Arm Thread " << std::endl;
 		threadObj.detach();
 	}
+	return ErrorCode_OK;
 }
 
 

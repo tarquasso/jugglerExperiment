@@ -35,7 +35,7 @@ public:
 	Vector2d getBallVelocity();
 
 	void writeDataToFile();
-
+	void stopWriteDataToFile();
 	void dataCallback(sFrameOfMocapData* data);
 
 protected:
@@ -67,7 +67,6 @@ private:
 	int nSamplesToWait = (int) floor(2 * (1/ FILTER_SAMPLE_PERIOD) * (1 / (FILTER_CUT_OFF_FREQUENCY / 2 / M_PI)));
 	void _WriteHeader();
 	void _WriteFrame(sFrameOfMocapData* data);
-
 	// end - Writing to File
 	
 	double fRate = 0.0;

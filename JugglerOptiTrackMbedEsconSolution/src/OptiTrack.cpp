@@ -1,5 +1,9 @@
 #include "OptiTrack.h"
 
+#define DTTMFMT "%Y-%m-%d_%H-%M-%S"
+#define DTTMSZ 21
+
+#include <time.h>
 #include <iostream>
 
 //#include <string>
@@ -96,11 +100,9 @@ int OptiTrack::initialize()
 /* Destructor */
 OptiTrack::~OptiTrack()
 {
+	this->stopWriteDataToFile();
 	m_theClient->Uninitialize();
 	delete m_theClient;
-
-	if(fp)
-		fclose(fp);
 }
 
 
@@ -235,6 +237,10 @@ int OptiTrack::enterMenuMode()
 			break;
 		case CTRL('r'):
 			writeDataToFile();
+			break;
+		case CTRL('s'):
+			stopWriteDataToFile();
+			break;
 		default:
 			break;
 		}
@@ -321,8 +327,7 @@ void OptiTrack::dataCallback(sFrameOfMocapData* data)
 		}
 	}
 
-	if(fp) // Write data only if the file stream is open
-		_WriteFrame(data);
+	this->_WriteFrame(data);
 
 	/*printf("\t%3.3f\t%3.3f\t%3.2f\t%3.2f\t%3.3f\n",
 		xPos, zPos, xVel, zVel, psi);*/
@@ -394,33 +399,78 @@ void OptiTrack::setBallVelocity(const double& xp, const double& zp)
 	m_ballVelOptiTrack(1) = zp;
 }
 
+/*
+
+
+static char * OptiTrack::getDtTm(char *buff) {
+	time_t t = time(0);
+	
+	return buff;
+}
+*/
+
+
+
 void OptiTrack::writeDataToFile()
 {
-	GetCurrentDirectory(MAX_PATH, szFolder);
-	sprintf(szFile, "%sClient-output.pts", szFolder);
-	fp = fopen(szFile, "w");
 	if (!fp)
 	{
-		printf("error opening output file %s.  Exiting.", szFile);
-		exit(1);
+		char buff[DTTMSZ];
+		time_t ltime; /* calendar time */
+		ltime = time(NULL); /* get current cal time */
+		strftime(buff, DTTMSZ, DTTMFMT, localtime(&ltime));
+
+		// start writing
+		GetCurrentDirectory(MAX_PATH, szFolder);
+		sprintf(szFile, "%sClient-output_%s.pts", szFolder,buff);
+		fp = fopen(szFile, "w");
+		if (!fp)
+		{
+			printf("error opening output file %s.  Exiting.", szFile);
+			exit(1);
+		}
+		else
+		{
+			printf("Starting to Write to File...\n");
+			_WriteHeader();
+		}
 	}
-	else
-		_WriteHeader();
+	else {
+		printf("Already Writing to File!\n");
+	}
 }
+
+void OptiTrack::stopWriteDataToFile()
+{
+	if (fp)
+	{
+		printf("Closing File...\n");
+		fclose(fp);
+		fp = nullptr;
+		printf("File closed...\n");
+	}
+	else {
+		printf("Not writing yet!!!\n");
+	}
+}
+
 
 void OptiTrack::_WriteFrame(sFrameOfMocapData* data)
 {
-	if (writeCount > nSamplesToWait)
+	if (fp) // Write data only if the file stream is open
 	{
-		fprintf(fp, "%d", data->iFrame);
+		if (writeCount > nSamplesToWait)
+		{
+			fprintf(fp, "%d", data->iFrame);
 
-		sDataDescriptions* pDataDefs = NULL;
-		int nBodies = m_theClient->GetDataDescriptions(&pDataDefs);
+			sDataDescriptions* pDataDefs = NULL;
+			int nBodies = m_theClient->GetDataDescriptions(&pDataDefs);
 
-		fprintf(fp, "\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f", xPos, zPos, xVel, zVel, psi);
-		fprintf(fp, "\n");
+			fprintf(fp, "\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f", xPos, zPos, xVel, zVel, psi);
+			fprintf(fp, "\n");
+		}
+		writeCount++;
 	}
-	writeCount++;
 }
 
 void OptiTrack::_WriteHeader()
