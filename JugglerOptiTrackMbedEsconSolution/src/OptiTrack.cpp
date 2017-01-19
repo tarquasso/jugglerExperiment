@@ -1,6 +1,6 @@
 #include "OptiTrack.h"
 
-#define DTTMFMT "%Y-%m-%d_%H-%M-%S"
+#define DTTMFMT L"%Y-%m-%d_%H-%M-%S"
 #define DTTMSZ 21
 
 #include <time.h>
@@ -415,18 +415,20 @@ void OptiTrack::writeDataToFile()
 {
 	if (!fp)
 	{
-		char buff[DTTMSZ];
+		wchar_t buff[DTTMSZ];
 		time_t ltime; /* calendar time */
 		ltime = time(NULL); /* get current cal time */
-		strftime(buff, DTTMSZ, DTTMFMT, localtime(&ltime));
+		wcsftime(buff, DTTMSZ, DTTMFMT, localtime(&ltime));
 
 		// start writing
+		std::size_t size = MAX_PATH;
 		GetCurrentDirectory(MAX_PATH, szFolder);
-		sprintf(szFile, "%sClient-output_%s.pts", szFolder,buff);
-		fp = fopen(szFile, "w");
+		swprintf(szFile, size, L"%s\\Juggler_Experiment_%s.pts", szFolder,buff); 
+		wprintf(L"Writing to %s\n", szFile);
+		fp = _wfopen(szFile, L"w");
 		if (!fp)
 		{
-			printf("error opening output file %s.  Exiting.", szFile);
+			wprintf(L"error opening output file %s.  Exiting.", szFile);
 			exit(1);
 		}
 		else

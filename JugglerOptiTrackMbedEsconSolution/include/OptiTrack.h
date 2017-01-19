@@ -61,7 +61,7 @@ private:
 
 	// start - Writing to File
 	FILE* fp;
-	char szFile[MAX_PATH];
+	wchar_t szFile[MAX_PATH];
 	wchar_t szFolder[MAX_PATH];
 	int writeCount = 0;
 	int nSamplesToWait = (int) floor(2 * (1/ FILTER_SAMPLE_PERIOD) * (1 / (FILTER_CUT_OFF_FREQUENCY / 2 / M_PI)));
