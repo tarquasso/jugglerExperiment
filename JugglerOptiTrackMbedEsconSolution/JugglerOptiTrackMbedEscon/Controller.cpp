@@ -25,9 +25,7 @@ Controller::Controller() :
 	sigmapRef = qpRef(1);
 
 	setReferenceEnergy(0.0);
-	//H = 1 / 2 * pow(0.0, 2) + g*sin(beta)*0.0;
-	//Href = getReferenceEnergy();
-	//Htilde = H - Href;
+	
 	//reflection gain of mirror law 0.075, // restoring of the energy href 0.01
 	//this->setGains(0.075, 0.1, 0.05, 0.05);
 
@@ -35,11 +33,21 @@ Controller::Controller() :
 	this->setGains(0.05, 0.001, 0.1, 0.05) // also k1 = 1e-4
 	*/
 
-	double k0 = 0.285;
+	// These are for inclination, beta = 15.6 degrees.
+	/*double k0 = 0.285;
 	double k1 = 0.593;
 	double k00 = 0.718;
-	double k01 = 0.155;
+	double k01 = 0.155;*/
 	// For heavier puck	
+
+
+	// Increase inclination to, beta = ~33 degrees
+	double k0 = 0.315;
+	double k1 = 0.593;
+	double k00 = 0.869;
+	double k01 = 0.170;
+
+
 	this->setDefaultGains(k0, k1, k00, k01);
 	this->setGains(k0, k1, k00, k01);
 }
