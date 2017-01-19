@@ -4,7 +4,7 @@
 #define PUCK_NAME "PuckHeavy"
 //#define PUCKNAME "Puck"
 #define FILTER_CUT_OFF_FREQUENCY 126
-#define FILTER_SAMPLE_PERIOD 0.083333
+#define FILTER_SAMPLE_PERIOD 0.0083333
 
 #include "NatNetTypes.h"
 #include "NatNetClient.h"

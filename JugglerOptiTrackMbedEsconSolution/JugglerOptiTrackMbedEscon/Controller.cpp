@@ -36,9 +36,9 @@ Controller::Controller() :
 	*/
 
 	double k0 = 0.285;
-	double k1 = 0.405;
-	double k00 = 1.051;
-	double k01 = 0.023;
+	double k1 = 0.593;
+	double k00 = 0.718;
+	double k01 = 0.155;
 	// For heavier puck	
 	this->setDefaultGains(k0, k1, k00, k01);
 	this->setGains(k0, k1, k00, k01);
@@ -198,7 +198,7 @@ double Controller::computeDesiredPaddlePosition()
 	updateReferenceVelocity();
 
 	// Control horizontally
-	double rhoBar = rubberLength / 2; //in the rubber frame
+	double rhoBar = rubberLength / 4; //in the rubber frame
 	double rhoRef = sigmaRef*cos(psiRef);
 	double rhopRef = sigmapRef*cos(psiRef) - sigmaRef*psipRef*sin(psiRef);
 

@@ -21,7 +21,7 @@ void LowPassFilter::setFilterParameters(const double& omega, const double& T)
 double LowPassFilter::calculate(double currentState)
 {
 	stateDerivative = (2 - wT) / (2 + wT) * lastStateDerivative
-		+ (wT) / (2 + wT) * (currentState + lastState);
+		+ (2*cutOffFrequency) / (2 + wT) * (currentState - lastState);
 	lastState = currentState;
 	lastStateDerivative = stateDerivative;
 	return stateDerivative;
