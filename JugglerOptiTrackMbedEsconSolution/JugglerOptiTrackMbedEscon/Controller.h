@@ -67,9 +67,9 @@ private:
 	bool m_initialized;
 
 	double betaDeg = 37;
-	double r = 0.086/2;	// Radius of the ball 
-	double ox = 0.3;	// Offset from the world frame to the paddle frame in the x-direction
-	double oz = -0.248;	// Offset from the world frame to the paddle frame in the z-direction
+	double r = 0.0877/2;	// Radius of the ball 
+	double ox = 0.448318;	// Offset from the world frame to the paddle frame in the x-direction
+	double oz = -0.065995;	// Offset from the world frame to the paddle frame in the z-direction
 	double rx = 0.029; // offset from the motor frame to the rubber frame in the x-direction
 	double rz = 0.02075; // offset from the motor frame to the rubber frame in the z-direction
 	double rubberLength = 0.542;

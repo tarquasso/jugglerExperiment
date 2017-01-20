@@ -1,4 +1,4 @@
-[fNumber, t, x, z, xd, zd, psi] = importfile('CClient-output.pts');
+[fNumber, t, x, z, xd, zd, psi] = importfile('Juggler-Experiment_2017-01-19_16-03-32.pts');
 
 fig = figure(1); clf
 subplot(3,2,1)

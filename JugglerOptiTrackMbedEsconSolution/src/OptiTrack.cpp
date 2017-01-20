@@ -423,8 +423,8 @@ void OptiTrack::writeDataToFile()
 		// start writing
 		std::size_t size = MAX_PATH;
 		GetCurrentDirectory(MAX_PATH, szFolder);
-		swprintf(szFile, size, L"%s\\Juggler_Experiment_%s.pts", szFolder,buff); 
-		wprintf(L"Writing to %s\n", szFile);
+		swprintf(szFile, size, L"%s\\Juggler-Experiment_%s.pts", szFolder,buff); 
+		wprintf(L"Writing to: %s\n", szFile);
 		fp = _wfopen(szFile, L"w");
 		if (!fp)
 		{
