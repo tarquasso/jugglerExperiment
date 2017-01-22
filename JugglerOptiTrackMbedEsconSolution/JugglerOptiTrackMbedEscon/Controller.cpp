@@ -42,10 +42,15 @@ Controller::Controller() :
 
 
 	// Increase inclination to, beta = ~33 degrees
-	double k0 = 0.315;
-	double k1 = 0.593;
-	double k00 = 0.869;
-	double k01 = 0.170;
+	//double k0 = 0.315;
+	//double k1 = 0.593;
+	//double k00 = 0.869;
+	//double k01 = 0.170;
+
+	double k0 = 0.675;
+	double k1 = 0.34;
+	double k00 = 0.673;
+	double k01 = 0.090;
 
 
 	this->setDefaultGains(k0, k1, k00, k01);

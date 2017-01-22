@@ -74,10 +74,10 @@ int overallMenuMode(OptiTrack* optiTrackPointer, Controller* controllerPointer)
 			controllerPointer->getDefaultGains(&k0, &k1, &k00, &k01);
 			gainsChanged = true;
 			break;
-		case CTRL('r'):
+		case 'w':
 			optiTrackPointer->writeDataToFile();
 			break;
-		case CTRL('s'):
+		case 's':
 			optiTrackPointer->stopWriteDataToFile();
 			break;
 		case 'q':

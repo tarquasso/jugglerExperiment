@@ -327,6 +327,7 @@ void OptiTrack::dataCallback(sFrameOfMocapData* data)
 		}
 	}
 
+	// log data (if active)
 	this->_WriteFrame(data);
 
 	/*printf("\t%3.3f\t%3.3f\t%3.2f\t%3.2f\t%3.3f\n",
