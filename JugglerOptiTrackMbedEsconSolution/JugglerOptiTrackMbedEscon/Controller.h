@@ -66,13 +66,14 @@ protected:
 private:
 	bool m_initialized;
 
-	double betaDeg = 37;
+	double betaDeg = 35.8;
 	double r = 0.0877/2;	// Radius of the ball 
-	double ox = 0.448318;	// Offset from the world frame to the paddle frame in the x-direction
-	double oz = -0.065995;	// Offset from the world frame to the paddle frame in the z-direction
+	double ox = 0.448;	// Offset from the world frame to the paddle frame in the x-direction
+	double oz = -0.066;	// Offset from the world frame to the paddle frame in the z-direction
 	double rx = 0.029; // offset from the motor frame to the rubber frame in the x-direction
 	double rz = 0.02075; // offset from the motor frame to the rubber frame in the z-direction
 	double rubberLength = 0.542;
+	double zmax = 0.2;		// Desired juggle height
 
 	double x, z, xp, zp; //ball states
 

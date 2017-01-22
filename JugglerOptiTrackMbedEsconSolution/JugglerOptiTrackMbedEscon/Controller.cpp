@@ -24,7 +24,7 @@ Controller::Controller() :
 	psipRef = qpRef(0);
 	sigmapRef = qpRef(1);
 
-	setReferenceEnergy(0.0);
+	setReferenceEnergy(g*sin(beta)*zmax);
 	
 	//reflection gain of mirror law 0.075, // restoring of the energy href 0.01
 	//this->setGains(0.075, 0.1, 0.05, 0.05);
@@ -47,10 +47,11 @@ Controller::Controller() :
 	//double k00 = 0.869;
 	//double k01 = 0.170;
 
-	double k0 = 0.675;
-	double k1 = 0.34;
-	double k00 = 0.673;
-	double k01 = 0.090;
+	// ~25cm
+	double k0 = 0.315;
+	double k1 = 0.001;
+	double k00 = 0.6;
+	double k01 = 0.170;
 
 
 	this->setDefaultGains(k0, k1, k00, k01);
