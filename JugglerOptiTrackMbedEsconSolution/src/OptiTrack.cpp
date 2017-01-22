@@ -307,6 +307,16 @@ void OptiTrack::dataCallback(sFrameOfMocapData* data)
 				xPos = data->RigidBodies[i].x;
 				zPos = data->RigidBodies[i].z;
 
+				if (xPos > xPosMax)
+					xPos = xPosMax;
+				else if (xPos < xPosMin)
+					xPos = xPosMin;
+
+				if (zPos > zPosMax)
+					zPos = zPosMax;
+				else if (zPos < zPosMin)
+					zPos = zPosMin;
+
 				xVel = xVelLowPassFilter.calculate(xPos);
 				zVel = zVelLowPassFilter.calculate(zPos);
 

@@ -74,6 +74,11 @@ private:
 
 	double xPos = 0.0;
 	double zPos = 0.0;
+	double xPosMax = 0.38;
+	double xPosMin = -0.08;
+
+	double zPosMax = 0.555;
+	double zPosMin = -0.125;
 
 	double xPosOld = 0.0;
 	double zPosOld = 0.0;
