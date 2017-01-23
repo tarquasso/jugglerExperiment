@@ -213,6 +213,10 @@ line(XData5wVia,ZData5wVia, 'Color', [0.2, 0.6, 0.5], 'LineStyle', '-', 'LineWid
 % end
 line(-rubberLength/2, 0, 'Marker', '.', 'MarkerSize', 50)
 
+set(gca, 'FontSize', 21)
+xticks([-rubberLength/2, -0.2, -0.1, 0, 0.1, 0.2])
 
-xlabel('$x$ [m]', 'Interpreter', 'LaTeX', 'FontSize', 15)
-ylabel('$z$ [m]', 'Interpreter', 'LaTeX', 'FontSize', 15)
+xlabel('$x$ [m]', 'Interpreter', 'LaTeX', 'FontSize', 24)
+ylabel('$z$ [m]', 'Interpreter', 'LaTeX', 'FontSize', 24)
+
+print('-f20', '-depsc', '-r1200', '/home/acsatici/soft_modeling_repo/RSS_2017/figures/experiment/mL_experiment')
