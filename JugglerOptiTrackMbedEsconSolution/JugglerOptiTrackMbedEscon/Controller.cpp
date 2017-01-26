@@ -41,17 +41,23 @@ Controller::Controller() :
 	// For heavier puck	
 
 
-	// Increase inclination to, beta = ~33 degrees
-	//double k0 = 0.315;
-	//double k1 = 0.593;
-	//double k00 = 0.869;
-	//double k01 = 0.170;
+	// ~25.5cm
+	/*double k0 = 0.159;
+	double k1 = 0.242;
+	double k00 = 0.236;
+	double k01 = 0.03;*/
 
-	// ~25cm
-	double k0 = 0.315;
-	double k1 = 0.001;
-	double k00 = 0.6;
-	double k01 = 0.170;
+	// ~30cm
+	/*double k0 = 0.202;
+	double k1 = 0.202;
+	double k00 = 0.4;
+	double k01 = 0.05;*/
+
+	// ~36cm
+	double k0 = 0.100;
+	double k1 = 0.285;
+	double k00 = 0.52;
+	double k01 = 0.03;
 
 
 	this->setDefaultGains(k0, k1, k00, k01);

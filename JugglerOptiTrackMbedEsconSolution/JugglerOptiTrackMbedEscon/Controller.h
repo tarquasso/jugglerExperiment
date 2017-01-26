@@ -73,7 +73,7 @@ private:
 	double rx = 0.029; // offset from the motor frame to the rubber frame in the x-direction
 	double rz = 0.02075; // offset from the motor frame to the rubber frame in the z-direction
 	double rubberLength = 0.542;
-	double zmax = 0.2;		// Desired juggle height
+	double zmax = 0.36;		// Desired juggle height
 
 	double x, z, xp, zp; //ball states
 
