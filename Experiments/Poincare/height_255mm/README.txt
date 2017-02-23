@@ -1,0 +1,2 @@
+gopro_479
+gopro_480
